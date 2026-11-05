@@ -1,0 +1,66 @@
+/* パーツ1 ヘッダーと状況の入力(比べ表 1-1〜1-12)。クラス名は n5-p1- で始める */
+/* パーツ1だけで使う色の変数(page.css に足せないため、ここに1回だけ書く。part0 に移すなら gaps 参照) */
+:root {
+  --n5-p1-on-color: var(--n5-p1-on-color);
+  --n5-p1-error-bg: #FEF2F2;
+  --n5-p1-error-text: #B91C1C;
+  --n5-p1-scrim: var(--n5-p1-scrim);
+  --n5-p1-shadow: rgba(15, 23, 42, 0.08);
+  --n5-p1-menu-shadow: rgba(15, 23, 42, 0.18);
+}
+.n5-p1-preview { border: 1px dashed var(--n5-input-border); border-radius: var(--n5-radius); padding: 12px; background: var(--n5-surface); }
+.n5-p1-preview button { margin: 0 6px 6px 0; padding: 6px 12px; border: 1px solid var(--n5-input-border); border-radius: 8px; background: var(--n5-chip-bg); color: var(--n5-chip-text); }
+.n5-p1-preview pre { margin: 8px 0 0; max-height: 160px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; color: var(--n5-text-sub); }
+.n5-p1-header { background: var(--n5-surface); border-bottom: 1px solid var(--n5-border); }
+.n5-p1-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+.n5-p1-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+.n5-p1-logo { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--n5-cta); color: var(--n5-p1-on-color); font-size: 13px; font-weight: 800; }
+.n5-p1-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.n5-p1-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.n5-p1-badge-idiot { color: var(--n5-idiot); background: var(--n5-idiot-bg); }
+.n5-p1-badge-average { color: var(--n5-average); background: var(--n5-average-bg); }
+.n5-p1-badge-god { color: var(--n5-god); background: var(--n5-god-bg); }
+.n5-p1-right { display: flex; align-items: center; gap: 8px; }
+.n5-p1-lang { padding: 6px 8px; border: 1px solid var(--n5-input-border); border-radius: 8px; background: var(--n5-surface); color: var(--n5-text); font: inherit; }
+.n5-p1-login { padding: 6px 14px; border: 1px solid var(--n5-border); border-radius: 8px; background: var(--n5-surface); color: var(--n5-text); font-weight: 600; }
+.n5-p1-login:hover { background: var(--n5-chip-bg); }
+
+.n5-p1-overlay { position: fixed; inset: 0; background: var(--n5-p1-scrim); display: flex; align-items: center; justify-content: center; padding: var(--n5-gutter); z-index: 1000; }
+.n5-p1-modal { position: relative; width: 100%; max-width: 360px; background: var(--n5-surface); border-radius: var(--n5-radius); padding: 24px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.n5-p1-modal-title { margin: 0 0 4px; font-size: 18px; }
+.n5-p1-close { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--n5-text-sub); font-size: 18px; }
+.n5-p1-close:hover { background: var(--n5-chip-bg); }
+.n5-p1-oauth { padding: 10px; border: 1px solid var(--n5-input-border); border-radius: 8px; background: var(--n5-surface); color: var(--n5-text-sub); font-weight: 600; }
+.n5-p1-soon { margin: 4px 0 0; text-align: center; color: var(--n5-text-sub); font-size: 14px; }
+
+.n5-p1-input { text-align: center; }
+.n5-p1-title { margin: 24px 0 16px; font-size: 24px; line-height: 1.3; overflow-wrap: anywhere; }
+.n5-p1-box { background: var(--n5-surface); border: 1px solid var(--n5-input-border); border-radius: var(--n5-radius); padding: 8px 12px; text-align: left; }
+.n5-p1-box:focus-within { border-color: var(--n5-average); box-shadow: 0 0 0 3px var(--n5-average-bg), 0 2px 8px var(--n5-p1-shadow); }
+.n5-p1-textarea { display: block; width: 100%; min-height: 110px; border: 0; outline: 0; resize: vertical; background: transparent; color: var(--n5-text); font: inherit; }
+.n5-p1-textarea::placeholder { color: var(--n5-text-sub); }
+.n5-p1-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.n5-p1-tool { padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--n5-text-sub); font-size: 14px; }
+.n5-p1-tool:hover { background: var(--n5-chip-bg); }
+.n5-p1-count { margin-left: auto; color: var(--n5-text-sub); font-size: 13px; }
+.n5-p1-presets { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0; }
+.n5-p1-chip { padding: 6px 14px; border: 0; border-radius: 999px; background: var(--n5-chip-bg); color: var(--n5-chip-text); font-size: 14px; }
+.n5-p1-chip:hover { filter: brightness(0.96); }
+.n5-p1-error { margin: 8px 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--n5-p1-error-bg); color: var(--n5-p1-error-text); font-size: 14px; text-align: left; overflow-wrap: anywhere; }
+.n5-p1-actions { display: flex; justify-content: flex-end; }
+.n5-p1-decide { padding: 12px 24px; border: 0; border-radius: var(--n5-radius); background: var(--n5-cta); color: var(--n5-p1-on-color); font-weight: 700; }
+.n5-p1-decide:disabled { opacity: 0.45; cursor: not-allowed; }
+.n5-p1-textarea:focus-visible, .n5-p1-tool:focus-visible, .n5-p1-chip:focus-visible, .n5-p1-decide:focus-visible, .n5-p1-login:focus-visible, .n5-p1-lang:focus-visible { outline: 2px solid var(--n5-average); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .n5-p1-title { font-size: 20px; }
+  .n5-p1-badges { order: 3; width: 100%; }
+  .n5-p1-decide { width: 100%; }
+}
+
+.n5-p1-account { position: relative; }
+.n5-p1-user { padding: 6px 14px; border: 1px solid var(--n5-border); border-radius: 8px; background: var(--n5-surface); color: var(--n5-text); font-weight: 600; }
+.n5-p1-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; min-width: 160px; display: flex; flex-direction: column; background: var(--n5-surface); border: 1px solid var(--n5-border); border-radius: 8px; box-shadow: 0 4px 12px var(--n5-p1-menu-shadow); z-index: 900; }
+.n5-p1-menu-item { padding: 10px 14px; border: 0; background: transparent; color: var(--n5-text); text-align: left; }
+.n5-p1-menu-item:hover:not(:disabled) { background: var(--n5-chip-bg); }
+.n5-p1-menu-item:disabled { color: var(--n5-text-sub); cursor: not-allowed; }
+.n5-p1-user:focus-visible, .n5-p1-menu-item:focus-visible { outline: 2px solid var(--n5-average); outline-offset: 2px; }

@@ -1,0 +1,368 @@
+{
+  "version": 1,
+  "name": "Next5Mins AI の画面(第1版)",
+  "activeScreen": "s_pc",
+  "customParts": [],
+  "screens": [
+    {
+      "id": "s_pc",
+      "name": "PC 1024×1400",
+      "width": 1024,
+      "height": 1400,
+      "bg": "#FFFFFF",
+      "grid": 8,
+      "items": [
+        {
+          "id": "p_pcHeader",
+          "type": "header",
+          "name": "ヘッダー",
+          "x": 0, "y": 0, "w": 1024, "h": 64,
+          "text": "Next5Mins AI|EN / JA",
+          "note": "ヘッダー: 左にロゴ、右に言語の切り替え(EN/JA)。押すと画面の文字が全部切り替わる",
+          "locked": false,
+          "props": { "bg": "#0F172A", "color": "#FFFFFF" }
+        },
+        {
+          "id": "p_pcHeading",
+          "type": "heading",
+          "name": "見出し",
+          "x": 152, "y": 96, "w": 720, "h": 48,
+          "text": "What are you stuck on right now?",
+          "note": "見出し: いま止まっていることを聞く一文(英語が主。JA のときは日本語に)",
+          "locked": false,
+          "props": { "size": 28, "color": "#0F172A", "align": "center", "bold": true }
+        },
+        {
+          "id": "p_pcInput",
+          "type": "textarea",
+          "name": "状況の入力",
+          "x": 152, "y": 160, "w": 720, "h": 120,
+          "text": "",
+          "note": "入力: 状況を書く欄。1〜240文字。超えたら送れない(残りの文字数を右下に出す)",
+          "locked": false,
+          "props": { "label": "", "placeholder": "e.g. I have to write a report but I can't start" }
+        },
+        {
+          "id": "p_pcDecide",
+          "type": "button",
+          "name": "決定ボタン",
+          "x": 392, "y": 296, "w": 240, "h": 48,
+          "text": "Decide for me",
+          "note": "決定ボタン: 押すと AI に頼む。待っている間は押せなくして「考え中」を出す",
+          "locked": false,
+          "props": { "bg": "#2563EB", "color": "#FFFFFF", "radius": 8, "size": 16 }
+        },
+        {
+          "id": "p_pcCardIdiot",
+          "type": "card",
+          "name": "カード(バカ)",
+          "x": 152, "y": 368, "w": 224, "h": 200,
+          "text": "🤪 Idiot\nShut the laptop. Open it again. Type one dumb sentence. Done.",
+          "note": "カード(バカ): 乱暴でゆるい答え。選ぶと品物が投げられる(画面の上に重ねる層)",
+          "locked": false,
+          "props": { "bg": "#FFF7ED", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_pcCardAverage",
+          "type": "card",
+          "name": "カード(平凡)",
+          "x": 400, "y": 368, "w": 224, "h": 200,
+          "text": "😐 Average\nSet a 5-minute timer and write only the first heading of the report.",
+          "note": "カード(平凡): ふつうで現実的な答え",
+          "locked": false,
+          "props": { "bg": "#F8FAFC", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_pcCardGod",
+          "type": "card",
+          "name": "カード(神)",
+          "x": 648, "y": 368, "w": 224, "h": 200,
+          "text": "⚡ God\nStand up, drink water, then write the one line you keep avoiding. The rest follows.",
+          "note": "カード(神): 鋭くて効く答え。なぜ効くか(why it works)も1行つける",
+          "locked": false,
+          "props": { "bg": "#EEF2FF", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_pcGoIdiot",
+          "type": "button",
+          "name": "選ぶボタン(バカ)",
+          "x": 152, "y": 584, "w": 224, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: バカのカードに決める。押すとタイマーが始まり、品物が投げられる",
+          "locked": false,
+          "props": { "bg": "#F97316", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_pcGoAverage",
+          "type": "button",
+          "name": "選ぶボタン(平凡)",
+          "x": 400, "y": 584, "w": 224, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: 平凡のカードに決める。押すとタイマーが始まる",
+          "locked": false,
+          "props": { "bg": "#64748B", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_pcGoGod",
+          "type": "button",
+          "name": "選ぶボタン(神)",
+          "x": 648, "y": 584, "w": 224, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: 神のカードに決める。押すとタイマーが始まる",
+          "locked": false,
+          "props": { "bg": "#4F46E5", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_pcTimer",
+          "type": "heading",
+          "name": "タイマー",
+          "x": 152, "y": 656, "w": 720, "h": 80,
+          "text": "5:00",
+          "note": "タイマー: 5分を数える(毎秒、残りを書き直す)。0:00 になったら入力待ちに戻る",
+          "locked": false,
+          "props": { "size": 64, "color": "#0F172A", "align": "center", "bold": true }
+        },
+        {
+          "id": "p_pcAd",
+          "type": "box",
+          "name": "広告の枠",
+          "x": 152, "y": 760, "w": 720, "h": 90,
+          "text": "Ad",
+          "note": "広告の枠: 横長(728×90)の広告を入れる場所。いまは印だけ。本物の広告のタグを入れる前に点検に通す",
+          "locked": false,
+          "props": { "bg": "#F1F5F9", "border": "#CBD5E1", "borderWidth": 1, "radius": 4 }
+        },
+        {
+          "id": "p_pcAffiliate",
+          "type": "text",
+          "name": "開示の一文",
+          "x": 152, "y": 864, "w": 720, "h": 40,
+          "text": "As an Amazon Associate, this site earns from qualifying purchases.",
+          "note": "開示: アフィリエイト(紹介で手数料をもらう仕組み)の一文。EN/JA で切り替える。文は法令・規約確認員に確認",
+          "locked": false,
+          "props": { "size": 12, "color": "#64748B", "align": "center", "lineHeight": 1.5 }
+        },
+        {
+          "id": "p_pcShareX",
+          "type": "button",
+          "name": "共有(X)",
+          "x": 344, "y": 920, "w": 160, "h": 40,
+          "text": "Share on X",
+          "note": "共有: 選んだ答えを X(旧Twitter)に投稿する画面を、新しいタブで開く",
+          "locked": false,
+          "props": { "bg": "#000000", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_pcCopy",
+          "type": "button",
+          "name": "コピー",
+          "x": 520, "y": 920, "w": 160, "h": 40,
+          "text": "Copy",
+          "note": "コピー: 選んだ答えの文をクリップボード(貼りつけ用の控え)に写す。写せたら「Copied!」を2秒出す",
+          "locked": false,
+          "props": { "bg": "#E2E8F0", "color": "#0F172A", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_pcNote",
+          "type": "note",
+          "name": "付箋(仕組みの説明)",
+          "x": 152, "y": 992, "w": 720, "h": 304,
+          "text": "この画面の仕組み(サイトには出ない)\n・入力 → 決定ボタン → AI が3つの答えを出す → カードが3枚出る → 1枚選ぶ → 5分タイマー。\n・カードとタイマーは、最初は出ていない。決定ボタンを押してから順に出る(この書類では、全部出た状態を描いている)。\n・バカのカードを選ぶと、品物が投げられる(画面の上に重ねる層。この書類には描いていない)。\n・タイマーが 0:00 になると、入力待ちに戻る(カードとタイマーと品物を消す)。\n・右上の EN/JA で、画面の文字を全部切り替える(英語が主)。\n・AI の窓口(サーバー)がないときは、にせの答えで動く(予行用)。\n・広告の枠と開示の文は、本物を入れる段で点検室に通す。",
+          "note": "付箋: この画面の仕組みの説明。サイトには出ない(仕様書には出る)",
+          "locked": false,
+          "props": { "bg": "#FEF3C7", "size": 13 }
+        },
+        {
+          "id": "p_pcFooter",
+          "type": "footer",
+          "name": "フッター",
+          "x": 0, "y": 1336, "w": 1024, "h": 64,
+          "text": "Privacy | Terms | © Next5Mins AI",
+          "note": "フッター: プライバシー・利用規約へのリンクと、著作権の表示",
+          "locked": false,
+          "props": { "bg": "#F1F5F9", "color": "#64748B" }
+        }
+      ]
+    },
+    {
+      "id": "s_sp",
+      "name": "スマホ 375×1800",
+      "width": 375,
+      "height": 1800,
+      "bg": "#FFFFFF",
+      "grid": 8,
+      "items": [
+        {
+          "id": "p_spHeader",
+          "type": "header",
+          "name": "ヘッダー",
+          "x": 0, "y": 0, "w": 375, "h": 56,
+          "text": "Next5Mins AI|EN / JA",
+          "note": "ヘッダー: 左にロゴ、右に言語の切り替え(EN/JA)。スマホでは高さを少し低く",
+          "locked": false,
+          "props": { "bg": "#0F172A", "color": "#FFFFFF" }
+        },
+        {
+          "id": "p_spHeading",
+          "type": "heading",
+          "name": "見出し",
+          "x": 16, "y": 72, "w": 343, "h": 72,
+          "text": "What are you stuck on right now?",
+          "note": "見出し: スマホでは2行に折り返す(文字は少し小さく)",
+          "locked": false,
+          "props": { "size": 22, "color": "#0F172A", "align": "center", "bold": true }
+        },
+        {
+          "id": "p_spInput",
+          "type": "textarea",
+          "name": "状況の入力",
+          "x": 16, "y": 160, "w": 343, "h": 120,
+          "text": "",
+          "note": "入力: 状況を書く欄。1〜240文字。スマホでは画面いっぱいの幅",
+          "locked": false,
+          "props": { "label": "", "placeholder": "e.g. I have to write a report but I can't start" }
+        },
+        {
+          "id": "p_spDecide",
+          "type": "button",
+          "name": "決定ボタン",
+          "x": 16, "y": 296, "w": 343, "h": 48,
+          "text": "Decide for me",
+          "note": "決定ボタン: 押すと AI に頼む。スマホでは幅いっぱいで押しやすく",
+          "locked": false,
+          "props": { "bg": "#2563EB", "color": "#FFFFFF", "radius": 8, "size": 16 }
+        },
+        {
+          "id": "p_spCardIdiot",
+          "type": "card",
+          "name": "カード(バカ)",
+          "x": 16, "y": 368, "w": 343, "h": 160,
+          "text": "🤪 Idiot\nShut the laptop. Open it again. Type one dumb sentence. Done.",
+          "note": "カード(バカ): スマホでは3枚を縦に並べる。選ぶと品物が投げられる(重ねる層)",
+          "locked": false,
+          "props": { "bg": "#FFF7ED", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_spGoIdiot",
+          "type": "button",
+          "name": "選ぶボタン(バカ)",
+          "x": 16, "y": 536, "w": 343, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: バカのカードに決める。押すとタイマーが始まる",
+          "locked": false,
+          "props": { "bg": "#F97316", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_spCardAverage",
+          "type": "card",
+          "name": "カード(平凡)",
+          "x": 16, "y": 600, "w": 343, "h": 160,
+          "text": "😐 Average\nSet a 5-minute timer and write only the first heading of the report.",
+          "note": "カード(平凡): ふつうで現実的な答え",
+          "locked": false,
+          "props": { "bg": "#F8FAFC", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_spGoAverage",
+          "type": "button",
+          "name": "選ぶボタン(平凡)",
+          "x": 16, "y": 768, "w": 343, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: 平凡のカードに決める。押すとタイマーが始まる",
+          "locked": false,
+          "props": { "bg": "#64748B", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_spCardGod",
+          "type": "card",
+          "name": "カード(神)",
+          "x": 16, "y": 832, "w": 343, "h": 160,
+          "text": "⚡ God\nStand up, drink water, then write the one line you keep avoiding. The rest follows.",
+          "note": "カード(神): 鋭くて効く答え。なぜ効くかも1行つける",
+          "locked": false,
+          "props": { "bg": "#EEF2FF", "radius": 12, "shadow": true }
+        },
+        {
+          "id": "p_spGoGod",
+          "type": "button",
+          "name": "選ぶボタン(神)",
+          "x": 16, "y": 1000, "w": 343, "h": 40,
+          "text": "Go with this",
+          "note": "選ぶボタン: 神のカードに決める。押すとタイマーが始まる",
+          "locked": false,
+          "props": { "bg": "#4F46E5", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_spTimer",
+          "type": "heading",
+          "name": "タイマー",
+          "x": 16, "y": 1064, "w": 343, "h": 80,
+          "text": "5:00",
+          "note": "タイマー: 5分を数える。選んだカードのすぐ下に出す(スクロールしなくても見える所)",
+          "locked": false,
+          "props": { "size": 56, "color": "#0F172A", "align": "center", "bold": true }
+        },
+        {
+          "id": "p_spAd",
+          "type": "box",
+          "name": "広告の枠",
+          "x": 16, "y": 1160, "w": 343, "h": 100,
+          "text": "Ad",
+          "note": "広告の枠: スマホ用(320×100)の広告を入れる場所。いまは印だけ",
+          "locked": false,
+          "props": { "bg": "#F1F5F9", "border": "#CBD5E1", "borderWidth": 1, "radius": 4 }
+        },
+        {
+          "id": "p_spAffiliate",
+          "type": "text",
+          "name": "開示の一文",
+          "x": 16, "y": 1272, "w": 343, "h": 48,
+          "text": "As an Amazon Associate, this site earns from qualifying purchases.",
+          "note": "開示: アフィリエイトの一文。スマホでは2行に折り返す",
+          "locked": false,
+          "props": { "size": 12, "color": "#64748B", "align": "center", "lineHeight": 1.5 }
+        },
+        {
+          "id": "p_spShareX",
+          "type": "button",
+          "name": "共有(X)",
+          "x": 16, "y": 1336, "w": 164, "h": 40,
+          "text": "Share on X",
+          "note": "共有: 選んだ答えを X に投稿する画面を開く(スマホでは X のアプリが開くことがある)",
+          "locked": false,
+          "props": { "bg": "#000000", "color": "#FFFFFF", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_spCopy",
+          "type": "button",
+          "name": "コピー",
+          "x": 195, "y": 1336, "w": 164, "h": 40,
+          "text": "Copy",
+          "note": "コピー: 選んだ答えの文をクリップボードに写す",
+          "locked": false,
+          "props": { "bg": "#E2E8F0", "color": "#0F172A", "radius": 6, "size": 14 }
+        },
+        {
+          "id": "p_spNote",
+          "type": "note",
+          "name": "付箋(仕組みの説明)",
+          "x": 16, "y": 1392, "w": 343, "h": 312,
+          "text": "スマホの画面の仕組み(サイトには出ない)\n・流れは PC と同じ(入力 → 決定 → カード3枚 → 1枚選ぶ → 5分タイマー)。\n・カード3枚は縦に並べる。横に並べない。\n・バカのカードを選ぶと、品物が投げられる(画面の上に重ねる層。指で受け止められる)。\n・ボタンは幅いっぱいにして、指で押しやすく(高さ 40 以上)。\n・タイマーが 0:00 になると、入力待ちに戻る。\n・EN/JA の切り替えは右上。文字を全部切り替える。",
+          "note": "付箋: スマホの画面の仕組みの説明。サイトには出ない(仕様書には出る)",
+          "locked": false,
+          "props": { "bg": "#FEF3C7", "size": 13 }
+        },
+        {
+          "id": "p_spFooter",
+          "type": "footer",
+          "name": "フッター",
+          "x": 0, "y": 1736, "w": 375, "h": 64,
+          "text": "Privacy | Terms | © Next5Mins AI",
+          "note": "フッター: プライバシー・利用規約へのリンクと、著作権の表示",
+          "locked": false,
+          "props": { "bg": "#F1F5F9", "color": "#64748B" }
+        }
+      ]
+    }
+  ]
+}

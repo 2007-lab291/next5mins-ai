@@ -1,0 +1,31 @@
+/* パーツ0 ページ全体(比べ表 0-1〜0-6。設計書 8-1・8-2)。色と幅は、ここだけに書く */
+:root {
+  --n5-bg: #F8FAFC;          /* 0-1 ページの背景 */
+  --n5-surface: #FFFFFF;     /* 0-2 カード・入力欄 */
+  --n5-border: #E2E8F0;      /* 0-3 枠線・区切り線 */
+  --n5-input-border: #CBD5E1;/* 1-7 入力欄の枠 */
+  --n5-text: #0F172A;        /* 0-4 本文 */
+  --n5-text-sub: #64748B;    /* 0-4 補足・入力前の薄い文字 */
+  --n5-chip-bg: #F1F5F9;     /* 1-11 プリセット */
+  --n5-chip-text: #334155;
+  --n5-idiot: #F59E0B;   --n5-idiot-bg: #FEF3C7;
+  --n5-average: #0EA5E9; --n5-average-bg: #E0F2FE;
+  --n5-god: #A855F7;     --n5-god-bg: #F3E8FF;
+  --n5-cta: linear-gradient(90deg, #0EA5E9, #A855F7);
+  --n5-error: #B91C1C;       /* エラーの文字(もとにない。パーツ1が使う) */
+  --n5-error-bg: #FEF2F2;    /* エラーの背景 */
+  --n5-shade: rgba(15, 23, 42, 0.45); /* 小窓の後ろの幕 */
+  --n5-max-width: 1024px;    /* 0-5 */
+  --n5-gutter: 16px;         /* 0-5 スマホの左右の余白 */
+  --n5-radius: 12px;
+  --n5-font: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--n5-bg); color: var(--n5-text); font-family: var(--n5-font); line-height: 1.5; min-height: 100vh; overflow-x: hidden; }
+.n5-container { max-width: var(--n5-max-width); margin: 0 auto; padding: 0 var(--n5-gutter); }
+.n5-section { margin: 24px 0; }
+[hidden] { display: none !important; }
+a { color: var(--n5-average); }
+button { font-family: inherit; font-size: inherit; cursor: pointer; }
+.n5-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

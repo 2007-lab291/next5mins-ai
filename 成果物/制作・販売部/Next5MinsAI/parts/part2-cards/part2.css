@@ -1,0 +1,33 @@
+/* パーツ2 3枚のカード(比べ表 2-1〜2-8)。クラス名は n5-p2-。色・幅は page.css の変数だけ使う */
+.n5-p2-summary { margin: 0 0 12px; font-size: 0.875rem; color: var(--n5-text-sub); overflow-wrap: anywhere; }
+.n5-p2-cards { display: grid; grid-template-columns: 1fr; gap: var(--n5-gutter); margin: 0; padding: 0; list-style: none; }
+@media (min-width: 768px) { .n5-p2-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.n5-p2-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: var(--n5-gutter); background: var(--n5-surface); border: 1px solid var(--n5-border); border-left-width: 6px; border-radius: var(--n5-radius); }
+.n5-p2-card-idiot { border-left-color: var(--n5-idiot); }
+.n5-p2-card-average { border-left-color: var(--n5-average); }
+.n5-p2-card-god { border-left-color: var(--n5-god); }
+.n5-p2-card-selected { border-top-color: var(--n5-text); border-right-color: var(--n5-text); border-bottom-color: var(--n5-text); }  /* 左の太い縁はキャラの色のまま */
+.n5-p2-badge { align-self: flex-start; padding: 2px 10px; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; }
+.n5-p2-badge-idiot { background: var(--n5-idiot-bg); color: var(--n5-idiot); }
+.n5-p2-badge-average { background: var(--n5-average-bg); color: var(--n5-average); }
+.n5-p2-badge-god { background: var(--n5-god-bg); color: var(--n5-god); }
+.n5-p2-title { margin: 0; font-size: 1.125rem; font-weight: 700; overflow-wrap: anywhere; }
+.n5-p2-instruction { margin: 0; overflow-wrap: anywhere; }
+.n5-p2-why { margin: 0; color: var(--n5-text-sub); font-size: 0.875rem; overflow-wrap: anywhere; }
+.n5-p2-why-label { display: block; font-weight: 700; }
+.n5-p2-spacer { flex: 1; }
+.n5-p2-selected-mark { font-weight: 700; font-size: 0.875rem; color: var(--n5-text); min-height: 1.5em; }
+.n5-p2-pick { width: 100%; padding: 10px 12px; border: 0; border-radius: var(--n5-radius); color: var(--n5-surface); font-weight: 700; }
+.n5-p2-pick-idiot { background: var(--n5-idiot); }
+.n5-p2-pick-average { background: var(--n5-average); }
+.n5-p2-pick-god { background: var(--n5-god); }
+.n5-p2-pick:disabled, .n5-p2-retry:disabled { opacity: 0.4; cursor: not-allowed; }
+.n5-p2-actions { display: flex; justify-content: center; margin-top: 16px; }
+.n5-p2-retry { padding: 8px 20px; background: var(--n5-surface); color: var(--n5-text); border: 1px solid var(--n5-input-border); border-radius: var(--n5-radius); }
+.n5-p2-safety { padding: var(--n5-gutter); background: var(--n5-surface); border: 1px solid var(--n5-border); border-radius: var(--n5-radius); color: var(--n5-text); overflow-wrap: anywhere; }
+.n5-p2-thinking { margin: 0 0 12px; color: var(--n5-text-sub); font-weight: 700; }
+.n5-p2-skeleton { min-height: 140px; background: var(--n5-chip-bg); border: 1px solid var(--n5-border); border-radius: var(--n5-radius); animation: n5-p2-pulse 1.2s ease-in-out infinite; }
+@keyframes n5-p2-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .n5-p2-skeleton { animation: none; } }
+.n5-p2-preview-log { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.75rem; }  /* 予行画面の出来事の記録用 */
+.n5-p2-preview-error { padding: 8px 12px; margin: 0 0 12px; border: 1px solid var(--n5-border); border-radius: var(--n5-radius); color: var(--n5-text); overflow-wrap: anywhere; }  /* 予行画面だけ: パーツ1の代わりにエラーを出す */

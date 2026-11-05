@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Next5Mins AI</title>
+  <link rel="stylesheet" href="parts/part0-page/page.css">
+  <link rel="stylesheet" href="parts/part1-header-input/part1.css">
+  <link rel="stylesheet" href="parts/part2-cards/part2.css">
+  <link rel="stylesheet" href="parts/part3-timer-ads/part3.css">
+  <link rel="stylesheet" href="parts/part4-item-throw/part4.css">
+  <link rel="stylesheet" href="parts/part5-share-footer/part5.css">
+</head>
+<body>
+  <!-- パーツ1 ヘッダー(ページの一番上・いつも出す) -->
+  <header id="n5-part1"></header>
+  <main class="n5-container">
+    <!-- パーツ1 状況の入力 -->
+    <section id="n5-part1-input" class="n5-section"></section>
+    <!-- パーツ2 3枚のカード(作ったあとに開く) -->
+    <section id="n5-part2" class="n5-section" hidden></section>
+    <!-- パーツ3 5分タイマーと広告(カードを選んだあとに開く) -->
+    <section id="n5-part3" class="n5-section" hidden></section>
+  </main>
+  <!-- パーツ5 共有とフッター -->
+  <footer id="n5-part5"></footer>
+  <!-- パーツ4 投げる品物(画面の上に重ねる層) -->
+  <div id="n5-part4"></div>
+
+  <script src="common/config.js"></script>
+  <script src="common/bus.js"></script>
+  <script src="common/samples.js"></script>
+  <script src="common/api.js"></script>
+  <script src="parts/part1-header-input/part1.js"></script>
+  <script src="parts/part2-cards/part2.js"></script>
+  <script src="parts/part3-timer-ads/part3.js"></script>
+  <script src="parts/part4-item-throw/part4.js"></script>
+  <script src="parts/part5-share-footer/part5.js"></script>
+</body>
+</html>

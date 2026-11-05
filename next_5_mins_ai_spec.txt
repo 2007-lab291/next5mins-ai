@@ -1,0 +1,393 @@
+======================================================================
+5分後の行動決定AI「Next5Mins AI」全体まとめ・要件定義・UML・サイト設計書
+======================================================================
+
+[0] 企画の全体まとめ（エグゼクティブサマリー）
+----------------------------------------------------------------------
+・サービス概要：
+  先延ばしにして動けない個人ユーザーが今の状況を入力すると、独立した
+  3つのモデル「バカ（Idiot）」「平凡（Average）」「神（God）」が、
+  それぞれの視点から「5分後にやるべき行動」を同時に提示するWebサービス。
+
+・ログイン＆多言語対応（グローバル展開仕様）：
+  - ログイン機能：Googleアカウントやメールアドレスで簡単にログイン可能。
+    ログインユーザーは過去の生成履歴や「バカ・平凡・神」の実行記録、言語設定を
+    保存できる。
+  - 言語選択機能：ヘッダーの言語切り替えメニュー（🌐 English / 日本語 等）から
+    表示言語を選択可能。選択した言語に合わせて、画面表示・Claude Haikuの出力言語・
+    ジョークのスタイル・Amazonアフィリエイトの飛び先（米国Amazon.com / 日本Amazon.co.jp等）
+    が自動で切り替わる。
+
+・3モデルの役割定義（互いに絡まず独立して回答）：
+  1. バカ（Idiot）：
+     「それっぽいけど、ほんとに関係ないこと」を言う。
+  2. 平凡（Average）：
+     「普通のこと」を言う（本当に今から5分で実行できる現実的な一歩）。
+  3. 神（God）：
+     「できないけど、出来たらすごいこと」を言う。
+
+・ユーモア＆ジョークの設計方針：
+  - キャラ同士でコント（掛け合い）はさせず、それぞれ独立して回答させる。
+  - 毎回無理にギャグを言わせない（毎回ボケると寒くなるため、刺さる時だけ
+    自然なタイミングでキレのあるアメリカンジョークや皮肉を混ぜる）。
+  - AI特有の「おもんないダジャレ・寒いノリ」を排除するため、本場のウケる
+    アメリカンジョークやRedditの高評価ウィット事例集をナレッジ（Few-Shot
+    お手本データ）として大量に学習・参照させる。
+
+・マネタイズ方式（完全無料＋2軸の収益化）：
+  1. 体験型Amazonアフィリエイト：
+     バカが「そんなお前にはこれが必要だ！」と画面上でアイテムを投げてくる。
+     ユーザーがタップしてキャッチすると、おすすめコメントと共に選択言語に応じた
+     Amazonの検索結果ページ（アソシエイトタグ付き）が開く。
+  2. ディスプレイ広告：
+     5分タイマー稼働中、画面を開きっぱなしにする特性を活かして広告を表示する。
+
+・使用AIモデル＆ノーコード構成：
+  - AIモデル：Anthropic Claude API（3モデルすべて Claude Haiku に統一）
+  - AIワークフロー＆ジョーク学習：Dify（ワークフロー＋ナレッジベース）
+  - フロントエンド＆認証：ノーコードWebビルダー（Lovable / Bolt.new / Bubble）＋ Supabase Auth
+  - 集客チャネル：Reddit（r/Productivity, r/ADHD, r/InternetIsBeautiful 等）およびSNS
+
+
+[1] プロジェクト基本情報
+----------------------------------------------------------------------
+・サービス名（仮）：
+  Next5Mins AI
+  (What should you do in the next 5 minutes? Ask an Idiot, an Average Joe, or a God.)
+
+・ターゲット市場：
+  海外（英語圏）を中心とした世界中の個人ユーザー（多言語切り替え対応）
+
+・解決する課題：
+  「やるべきことは分かっているが、何から手をつければいいか分からずスマホを
+  見てしまう（Task Paralysis / 先延ばし癖）」という悩み
+
+・APIコスト目安：
+  1回の入力につき Claude Haiku API を1回だけ呼び出し、JSON形式で3モデルと
+  バカの投擲アイテムを一括生成するため、1回あたり約0.03〜0.05円以下。
+
+
+[2] 3モデル＋バカの投擲アイテム詳細仕様
+----------------------------------------------------------------------
+1. バカモデル（Idiot Mode / Lv.1）
+   ・基本ルール：「それっぽいけど、ほんとに関係ないこと」を言う。
+   ・トーン：いかにもアドバイスっぽい真面目な口調なのに、元の悩みと全く
+     関係ない行動を指示する。時折シュールなアメリカンジョークやズレた比喩を
+     サラッと混ぜる（40語以内）。
+   ・出力例（悩み：確定申告をやらなきゃいけないのに天井を見つめている）：
+     「キッチンのスパイスをアルファベット順に並べ替えろ。パプリカに自分の
+       序列を教え込むんだ。財務の透明性はいつだってクミンから始まる。
+       税務署（IRS）はオレガノが整頓されている人間には敬意を払う。」
+
+2. 平凡モデル（Average Mode / Lv.50）
+   ・基本ルール：「普通のこと」を言う。
+   ・トーン：一般的でまともな常識に基づき、5分間で着実に前へ進める現実的な
+     スモールステップを提案する。基本は真面目で実用的だが、たまに人間味の
+     あるドライなウィット（Dry Wit）を軽く添える（40語以内）。
+   ・出力例：
+     「まだ計算はしなくていい。次の5分間は、机の上に確定申告用のフォルダを
+       1つ出して、源泉徴収票（W-2）を1枚見つけることだけに使おう。書類を
+       探すのが一番ハードルが高いから、そこだけ越えれば半分終わったも同然。」
+
+3. 神モデル（God Mode / Lv.999）
+   ・基本ルール：「できないけど、出来たらすごいこと」を言う。
+   ・トーン：人間には5分間では物理的・能力的に不可能だが、もし本当に出来たら
+     伝説級にすごい行動を提案する。スケールの大きさを活かしたブラックユーモア
+     や皮肉なワンライナーを時折挟む（40語以内）。
+   ・出力例：
+     「2分で憲法改正案を起草し、残り3分で38州に批准させて夕食前に税金そのものを
+       違法にしろ。確定申告など凡人の所業だ。連邦法を変えれば会計ソフト代の
+       40ドルが浮くぞ。」
+
+4. バカの投擲アイテム（Idiot's Thrown Item）
+   ・基本ルール：バカが「そんなお前にはこれが必要だ！（Someone like you clearly
+     needs THIS!）」と言いながら画面上でアイテムを投げてくる。
+   ・キャッチ時の動作：ユーザーが飛んでくるアイテムをタップ（キャッチ）すると、
+     ウィットの効いた一言と共に該当商品のAmazonアフィリエイトページが開く。
+   ・言語連動型AmazonアフィリエイトURL生成式（リンク切れゼロ方式）：
+     - 英語（EN）選択時：https://www.amazon.com/s?k={amazon_search_keyword}&tag={USアソシエイトID}
+     - 日本語（JA）選択時：https://www.amazon.co.jp/s?k={amazon_search_keyword}&tag={JPアソシエイトID}
+
+
+[3] 「おもんないAIギャグ」の排除＆アメリカンジョーク学習仕様
+----------------------------------------------------------------------
+1. ジョーク頻度の制御（毎回言わせない）：
+   毎回ボケるとわざとらしくて寒くなるため、「基本は各モデルのルール通りの
+   行動提案に徹し、本当にキレのあるジョークが自然に成立する時だけワンライナー
+   を入れる（無理に毎回ギャグを言わない）」ようプロンプトで制御する。
+
+2. 寒いAIジョークの禁止ルール（Negative Prompting）：
+   - 陳腐なダジャレ（Puns）やオヤジギャグ（Dad jokes）の禁止
+   - 感嘆符（!）の多用やハイテンションすぎる寒いノリの禁止
+   - ジョークの後に自分で解説するような説明くさい言い回しの禁止
+
+3. ウケるアメリカンジョーク集のナレッジ学習（Few-Shot / RAG）：
+   Difyのナレッジベース（知識DB）およびFew-Shotプロンプトに、アメリカの
+   スタンダップコメディやRedditで高評価（数千Upvote以上）を獲得した
+   「ドライな皮肉（Dry Wit）」「自虐ユーモア」「鋭い観察眼のワンライナー」
+   の実例集を大量に登録し、Claude Haikuにそのトーンと間合いを学習させる。
+
+
+[4] Claude Haiku 構造化出力（JSON Schema）
+----------------------------------------------------------------------
+{
+  "language": "en",
+  "situation_summary": "Need to do taxes, staring at the ceiling instead",
+  "actions": {
+    "idiot": {
+      "title": "Alphabetize your spice rack",
+      "instruction": "Go to the kitchen and arrange your spices alphabetically. Make sure paprika knows its place. Financial clarity always starts with cumin.",
+      "why_it_works": "The IRS respects a man with organized oregano."
+    },
+    "average": {
+      "title": "Just find one tax form",
+      "instruction": "Don't calculate anything yet. Spend the next 5 minutes just finding your W-2 or opening your tax folder on your desk.",
+      "why_it_works": "Gathering documents is the hardest mental hurdle. Once it's open, you're halfway there."
+    },
+    "god": {
+      "title": "Lobby Congress to abolish the IRS",
+      "instruction": "Draft a constitutional amendment in 2 minutes, get 38 states to ratify it in 3, and make taxes illegal before dinner.",
+      "why_it_works": "Filing taxes is for mortals. Changing federal law saves you at least $40 on TurboTax."
+    }
+  },
+  "idiot_item_throw": {
+    "shout_line": "Someone like you clearly needs THIS!",
+    "item_name": "Inflatable T-Rex Costume",
+    "item_emoji": "🦖",
+    "funny_reason": "Extinct reptiles are legally exempt from capital gains tax.",
+    "amazon_search_keyword": "inflatable t-rex costume adult"
+  }
+}
+
+
+[5] Claude Haiku 用システムプロンプト（多言語対応・コピペ用）
+----------------------------------------------------------------------
+You are the engine behind "Next5Mins AI", an app that gives procrastinating users a 5-minute action from 3 independent models: Idiot, Average, and God.
+
+Target Output Language: {{selected_language}} (Output all fields, including amazon_search_keyword, in {{selected_language}}).
+
+Core Rules for the 3 Models (Keep them independent - do NOT make them talk to each other):
+1. "idiot": Tell them to do something that SOUNDS like plausible advice at first glance, but is actually COMPLETELY UNRELATED to their problem.
+2. "average": Give normal, grounded, genuinely helpful 5-minute advice that anyone can do right now.
+3. "god": Tell them to do something impossible for a human to do in 5 minutes, but legendary if they actually pulled it off.
+4. "idiot_item_throw": The Idiot throws a searchable Amazon item at the user saying "Someone like you clearly needs THIS!"
+
+Humor & American Joke Guidelines (CRITICAL):
+- DO NOT force a joke every single time. Only drop a joke or dry one-liner when it hits naturally. Sometimes playing it completely straight is funnier.
+- NEVER use corny AI humor, dad jokes, puns, or over-the-top exclamation marks.
+- When you do use humor, use sharp American dry wit, deadpan delivery, cynical observational humor, or understated irony (similar to high-upvoted Reddit comments or stand-up comedy).
+- Study and match the tone of the <approved_humor_examples> provided in the knowledge base.
+
+Respond ONLY with valid JSON matching the schema. Keep each instruction under 35 words.
+
+
+[6] 機能要件一覧（MVP）
+----------------------------------------------------------------------
+・F-01 状況テキスト入力＆プリセット選択
+・F-02 Claude Haikuによる3モデル＋投擲アイテム一括生成
+・F-03 優良アメリカンジョーク集ナレッジ（RAG / Few-Shot DB）
+・F-04 行動選択＆5分カウントダウンタイマー
+・F-05 バカの「これが必要だ！」アイテム投擲＆キャッチ演出（マネタイズ①）
+・F-06 ディスプレイ広告枠表示（マネタイズ②）
+・F-07 Reddit / SNSシェア出力
+・F-08 IP・ユーザー単位の連打制限（Rate Limit）
+・F-09 ユーザーログイン・認証機能（Google OAuth / メール認証、履歴＆設定保存）
+・F-10 表示・生成言語の切り替え機能（EN / JA 等の選択に応じUI・AI出力・Amazon国別URLを切り替え）
+
+
+[7] UML設計（テキスト構造＆Mermaidコード）
+----------------------------------------------------------------------
+(1) ユースケース構造
+  ・ユーザー：
+    - ログインする（Google / メール認証）
+    - 言語を選択する（English / 日本語 等）
+    - 状況入力 → 3モデル閲覧 → 5分タイマー実行＆広告閲覧 →
+      バカの投擲アイテムキャッチ＆国別Amazon遷移 → Reddit/SNSシェア
+  ・認証基盤（Supabase Auth / Bubble Auth）：ログインセッションとユーザー設定を管理
+  ・Dify + Claude Haiku：選択言語とジョーク学習DBを参照してJSONを一括生成
+
+[Mermaid: Use Case Diagram]
+flowchart LR
+    User["User"]
+    Auth["Auth Service (Google / Email Login)"]
+    Dify["Dify + Claude Haiku"]
+    JokeDB[("American Joke Knowledge DB")]
+    Amazon["Amazon Associates (Global / OneLink)"]
+    AdNet["Ad Network (AdSense)"]
+
+    User --> UC0("Log In & Select Language")
+    User --> UC1("Input Situation")
+    User --> UC2("Generate 3 Independent Actions")
+    User --> UC3("Run 5-Min Timer")
+    User --> UC4("Catch Idiot's Thrown Item")
+    User --> UC7("Share to Reddit / SNS")
+
+    UC0 --> Auth
+    UC2 --> Dify
+    Dify --> JokeDB
+    UC4 --> UC5("Open Localized Amazon Page")
+    UC5 --> Amazon
+    UC3 --> UC6("View Display Ads")
+    UC6 --> AdNet
+
+(2) シーケンス（時系列処理フロー）
+  1. ユーザーがログイン＆言語（例：EN または JA）を選択
+  2. 状況入力＆ボタン押下 → フロントエンドが「状況テキスト＋選択言語」をDify APIへ送信
+  3. Difyが「ジョーク学習DB」からお手本を取得し、選択言語指定と共にClaude Haikuへ送信
+  4. Claude Haikuが1〜2秒で選択言語のJSON（バカ・平凡・神＋投擲アイテム）を返却
+  5. 画面に3枚のカードを表示＆ログインユーザーの履歴DBに保存
+  6. 1つ選択で5分タイマー＆下部広告表示
+  7. 並行してバカが「そんなお前にはこれが必要だ！」とアイテムを投擲
+  8. タップしてキャッチ → 選択言語に対応した国のAmazonアフィリエイトURLへ遷移
+
+[Mermaid: Sequence Diagram]
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Frontend Web UI
+    participant Auth as Auth & User DB
+    participant Dify as Dify Workflow
+    participant JokeDB as Joke Knowledge DB
+    participant Haiku as Claude Haiku API
+    participant Ad as AdSense
+    participant Amz as Amazon Affiliate
+
+    User->>UI: Select Language (EN/JA) & Log In
+    UI->>Auth: Authenticate & load user preferences
+    Auth-->>UI: Session OK (preferred_language)
+    User->>UI: Input situation & click button
+    UI->>Dify: Send situation text + selected_language
+    Dify->>JokeDB: Retrieve approved American wit examples
+    JokeDB-->>Dify: Return Few-Shot examples
+    Dify->>Haiku: Prompt + Language + Examples + JSON Schema
+    Haiku-->>Dify: Return localized JSON (Idiot, Average, God, ThrownItem)
+    Dify-->>UI: Return JSON (1-2 sec)
+    UI->>Auth: Save generation history for logged-in user
+    UI-->>User: Display 3 Cards (Idiot / Average / God)
+    User->>UI: Select 1 card & start 5-min timer
+    UI->>Ad: Load display ad banner
+    UI-->>User: Idiot throws item ("Someone like you needs THIS!")
+    User->>UI: Tap & catch flying item
+    UI-->>User: Show item modal & funny reason
+    User->>Amz: Click link -> Open localized Amazon affiliate URL
+
+(3) 状態遷移（画面ステータス）
+  Idle_Input（入力待ち・言語切替/ログイン可能）→ Generating（生成中）
+  → Showing_3_Models（3カード表示）→ Idiot_Throwing_Item（バカ投擲演出）
+  → Item_Caught_Modal（Amazon紹介）→ Timer_Running（5分タイマー稼働＋広告表示）
+  → Idle_Input（完了・履歴保存）
+
+(4) クラス構造（データモデル）
+  - UserAccount（user_id, email, auth_provider, preferred_language, history_logs）
+  - JokeKnowledgeBase（category, good_american_jokes, banned_corny_patterns）
+  - HaikuResponse（language, situation_summary, idiot_action, average_action, god_action, idiot_item_throw）
+  - ActionCard（model_type, title, instruction, why_it_works）
+  - ThrownItem（shout_line, item_name, item_emoji, funny_reason, amazon_search_keyword）
+  - TimerSession（selected_model, remaining_seconds, is_item_caught, is_completed）
+
+
+======================================================================
+[8] サイトUI設計書：パーツ1（サイトの全体枠組み＆状況入力エリア）
+======================================================================
+
+1. カラーパレット設計（白基調・クリーンライトモード）
+----------------------------------------------------------------------
+白を基調とした明るく清潔感のあるUIにし、3モデル（バカ・平凡・神）の
+ポップなテーマカラーや、後から飛んでくる「バカの投擲アイテム」が最も
+鮮やかに目立つ配色です。
+
+・ページ全体背景色（Background Base）：
+  #F8FAFC（ソフトオフホワイト：真っ白なカードを浮き立たせる極薄グレー白）
+・メイン枠・入力ボックス背景色（Surface / Card / Input）：
+  #FFFFFF（ピュアホワイト：清潔感のある純白）
+・枠線・区切り線色（Border / Divider）：
+  #E2E8F0（ライトスレートグレー：白背景を上品に区切る細い境界線）
+・メイン文字色（Text Primary）：
+  #0F172A（ディープチャコールネイビー：白背景の上でくっきり読める黒に近い濃紺）
+・サブ文字色・プレースホルダー（Text Secondary）：
+  #64748B（ミディアムスレートグレー：補足説明や入力前の薄い文字）
+
+・3モデルのテーマカラー（白背景に映えるアクセントカラー）：
+  1. バカモデル（Idiot Mode）：
+     文字・枠アクセント #F59E0B（アンバーゴールド） / 背景バッジ #FEF3C7（薄黄）
+  2. 平凡モデル（Average Mode）：
+     文字・枠アクセント #0EA5E9（スカイブルー）     / 背景バッジ #E0F2FE（薄青）
+  3. 神モデル（God Mode）：
+     文字・枠アクセント #A855F7（エレクトリックパープル） / 背景バッジ #F3E8FF（薄紫）
+
+・メイン決定ボタン（CTA Button Gradient）：
+  #0EA5E9（スカイブルー）→ #A855F7（エレクトリックパープル）の鮮やかなグラデーション
+
+
+2. サイト全体の枠組み（ページ構成・レイアウト寸法）
+----------------------------------------------------------------------
+・全体構成：白基調の1ページ完結型（ヘッダーに言語選択＆ログインボタンを常設）
+・最大横幅：1024px（PCでは中央寄せ、スマホでは左右余白16pxの1カラム）
+・上から下への配置順序（5パーツ構成）：
+  [パーツ1] ヘッダー（ロゴ・3モデルバッジ・言語選択・ログイン）＆状況入力エリア
+  [パーツ2] バカ・平凡・神の3モデル結果カード表示エリア（生成後に展開）
+  [パーツ3] 5分カウントダウンタイマー＆ディスプレイ広告枠（カード選択後に展開）
+  [パーツ4] バカの「これが必要だ！」アイテム投擲オーバーレイ演出
+  [パーツ5] Reddit / SNSシェアバー＆フッター
+
+
+3. パーツ1（ヘッダー＆状況入力エリア）のテキストワイヤーフレーム
+----------------------------------------------------------------------
++--------------------------------------------------------------------+
+| [5m] Next5Mins AI   (🤪 Idiot)(😐 Average)(⚡ God)  [🌐 EN/日本語 ▾] [Log In] |
++--------------------------------------------------------------------+
+|                         Part 1: Situation Input                    |
+|                                                                    |
+|          What are you procrastinating on right now?                |
+|                                                                    |
+|  +--------------------------------------------------------------+  |
+|  | E.g., I'm staring at an empty document for my history paper, |  |
+|  | scrolling social media instead...                            |  |
+|  |                                                              |  |
+|  | [🎲 Random Situation]  [✕ Clear]                  0 / 240    |  |
+|  +--------------------------------------------------------------+  |
+|                                                                    |
+|  (Studying) (Writing) (Exercise) (Work Task) (Chores) (Emails)     |
+|                                                                    |
+|                                    +----------------------------+  |
+|                                    | Decide My Next 5 Mins  >>  |  |
+|                                    +----------------------------+  |
++--------------------------------------------------------------------+
+
+
+4. パーツ1の各UI部品の動作仕様（ノーコード実装時の設定項目）
+----------------------------------------------------------------------
+(1) ヘッダー（Header Bar / 背景 #FFFFFF・下線 #E2E8F0）
+    - 左側：ロゴアイコン＋サービス名「Next5Mins AI」
+    - 中央：3モデルのカラーピルバッジ（Idiot＝黄、Average＝青、God＝紫）
+    - 右側① 言語選択ドロップダウン（[🌐 EN / 日本語 ▾] / 要件F-10）：
+      ・選択肢：English (EN) / 日本語 (JA) / Español (ES) など
+      ・切り替えた瞬間に以下3つが連動して切り替わる：
+        1. 画面上の見出し・ボタン・プリセットチップの言語
+        2. Dify（Claude Haiku）へ送る出力言語パラメータ（{{selected_language}}）
+        3. バカが投げるAmazon商品の飛び先ドメイン（EN→amazon.com、JA→amazon.co.jp）
+    - 右側② ログインボタン（[Log In] / 要件F-09）：
+      ・未ログイン時：「Log In」ボタンを表示。クリックするとGoogleログインまたは
+        メールアドレスログインのポップアップ（モーダル）が開く。
+      ・ログイン済み時：ユーザーのアイコン＋「My History（過去の5分行動履歴）」
+        ドロップダウンに切り替わり、選んだ言語設定がアカウントに自動保存される。
+
+(2) 状況入力テキストエリア（Situation Input Box / 背景 #FFFFFF・枠線 #CBD5E1）
+    - プレースホルダー（選択言語に応じて変化）：
+      ・EN：「E.g., I'm staring at an empty document...」
+      ・JA：「例：明日テストなのにベッドでSNSを無限に見ている…」
+    - フォーカス時：枠線が #0EA5E9（スカイブルー）に光り、軽いドロップシャドウがつく
+    - 最大文字数：240文字
+
+(3) ワンタップ・プリセットチップ（Preset Chips / 要件F-01）
+    - 背景 #F1F5F9、文字 #334155 の角丸ピル型ボタン
+    - 選択中の言語に合わせてチップの表示文言と挿入テキストが切り替わる
+      （例：Studying / 勉強・試験、Work Task / 仕事のタスク、Chores / 部屋の片付け 等）
+
+(4) 生成ボタン（Primary Submit Button）
+    - ラベル：EN「Decide My Next 5 Mins >>」 / JA「5分後の行動を決める >>」
+    - 押下時の挙動：
+      入力テキストと選択言語コード（`language: "en"` または `"ja"` 等）をセットで
+      Dify（Claude Haiku API）へ送信し、[パーツ2]を展開する。
+
+======================================================================

@@ -1,0 +1,13 @@
+/* パーツ5 共有とフッター(比べ表 5-1〜5-2)。クラス名は n5-p5- */
+.n5-p5-share { padding-top: 16px; padding-bottom: 16px; }
+.n5-p5-share-title { margin: 0 0 8px; font-size: 1rem; font-weight: 700; color: var(--n5-text); }
+.n5-p5-share-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.n5-p5-btn { display: inline-block; padding: 8px 16px; border: 1px solid var(--n5-input-border); border-radius: var(--n5-radius); background: var(--n5-surface); color: var(--n5-text); text-decoration: none; font-weight: 600; }
+.n5-p5-btn:hover { background: var(--n5-chip-bg); }
+.n5-p5-foot { margin-top: 24px; background: var(--n5-surface); border-top: 1px solid var(--n5-border); padding: 16px 0; }
+.n5-p5-foot-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.n5-p5-brand { margin: 0; font-weight: 700; color: var(--n5-text); }
+.n5-p5-note { margin: 4px 0 0; font-size: 0.75rem; color: var(--n5-text-sub); overflow-wrap: anywhere; }
+.n5-p5-links { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.n5-p5-links a { color: var(--n5-text-sub); font-size: 0.875rem; }
+.n5-p5-soon { flex-basis: 100%; margin: 0; font-size: 0.75rem; color: var(--n5-text-sub); }

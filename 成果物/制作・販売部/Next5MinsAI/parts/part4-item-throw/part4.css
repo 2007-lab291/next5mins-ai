@@ -1,0 +1,127 @@
+/* パーツ4 投げる品物(比べ表 4-1〜4-6)。クラス名は n5-p4- で始める。色と幅は part0-page/page.css の変数 */
+#n5-part4 {
+  --n5-p4-item: 64px;        /* 4-3 飛んでいる品物(押せる大きさ。56px 以上) */
+  --n5-p4-emoji: 48px;       /* 4-3 絵文字(48px 以上) */
+  --n5-p4-modal-emoji: 64px; /* 4-5 小窓の絵文字 */
+  --n5-p4-dialog-width: 420px;
+  --n5-p4-z: 1000;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: var(--n5-p4-z);
+  font-family: var(--n5-font);
+  color: var(--n5-text);
+}
+
+/* 4-2 バカのふきだし(左下か右下) */
+.n5-p4-bubble {
+  position: absolute;
+  bottom: var(--n5-gutter);
+  max-width: calc(100% - var(--n5-gutter) * 2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--n5-idiot-bg);
+  border: 2px solid var(--n5-idiot);
+  border-radius: var(--n5-radius);
+  pointer-events: none;
+}
+.n5-p4-bubble--left { left: var(--n5-gutter); }
+.n5-p4-bubble--right { right: var(--n5-gutter); }
+.n5-p4-bubble-face { font-size: var(--n5-p4-modal-emoji); line-height: 1; flex: none; }
+.n5-p4-bubble-line { font-weight: 700; overflow-wrap: anywhere; }
+
+/* 4-3 飛んでくる品物(位置は js が transform で付ける) */
+.n5-p4-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--n5-p4-item);
+  height: var(--n5-p4-item);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--n5-idiot-bg);
+  border: 2px solid var(--n5-idiot);
+  border-radius: 50%;
+  font-size: var(--n5-p4-emoji);
+  line-height: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
+  will-change: transform;
+}
+.n5-p4-item:focus-visible { outline: 3px solid var(--n5-text); outline-offset: 2px; }
+
+/* 4-5 小窓(中央)と、外側を押すと閉じる幕 */
+.n5-p4-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--n5-gutter);
+  background: var(--n5-text-sub);
+  background: color-mix(in srgb, var(--n5-text) 45%, transparent);
+  pointer-events: auto;
+}
+.n5-p4-dialog {
+  position: relative;
+  width: 100%;
+  max-width: var(--n5-p4-dialog-width);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 24px var(--n5-gutter) var(--n5-gutter);
+  background: var(--n5-surface);
+  border: 1px solid var(--n5-border);
+  border-radius: var(--n5-radius);
+  text-align: center;
+}
+.n5-p4-ad {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0 8px;
+  background: var(--n5-chip-bg);
+  color: var(--n5-text-sub);
+  border: 1px solid var(--n5-border);
+  border-radius: var(--n5-radius);
+  font-size: 0.75rem;
+}
+.n5-p4-modal-emoji { font-size: var(--n5-p4-modal-emoji); line-height: 1.2; }
+.n5-p4-name { margin: 8px 0; font-size: 1.25rem; font-weight: 700; overflow-wrap: anywhere; }
+.n5-p4-says-label { margin: 8px 0 0; color: var(--n5-text-sub); font-size: 0.875rem; font-weight: 700; }
+.n5-p4-reason { margin: 4px 0 16px; overflow-wrap: anywhere; }
+.n5-p4-link {
+  display: inline-block;
+  max-width: 100%;
+  padding: 12px 24px;
+  background: var(--n5-idiot);
+  color: var(--n5-text);
+  border-radius: var(--n5-radius);
+  font-weight: 700;
+  text-decoration: none;
+}
+.n5-p4-link:focus-visible, .n5-p4-close:focus-visible { outline: 3px solid var(--n5-text); outline-offset: 2px; }
+.n5-p4-note { margin: 8px 0 0; color: var(--n5-text-sub); font-size: 0.75rem; }
+.n5-p4-close {
+  display: block;
+  margin: 16px auto 0;
+  padding: 8px 16px;
+  background: var(--n5-chip-bg);
+  color: var(--n5-chip-text);
+  border: 1px solid var(--n5-border);
+  border-radius: var(--n5-radius);
+}
+
+/* 予行(part4.html)の画面だけで使う */
+.n5-p4-preview { padding-block: var(--n5-gutter); }
+.n5-p4-preview h1 { font-size: 1.25rem; }
+.n5-p4-preview-hint { color: var(--n5-text-sub); }
+.n5-p4-preview-bg { margin: 16px 0; padding: 48px var(--n5-gutter); border: 1px dashed var(--n5-input-border); border-radius: var(--n5-radius); color: var(--n5-text-sub); text-align: center; overflow-wrap: anywhere; }
+.n5-p4-preview-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.n5-p4-preview-controls button { padding: 8px 12px; background: var(--n5-surface); border: 1px solid var(--n5-input-border); border-radius: var(--n5-radius); }
+.n5-p4-preview-controls button[aria-pressed="true"] { background: var(--n5-idiot-bg); border-color: var(--n5-idiot); }
+.n5-p4-preview-log { margin: 16px 0; padding: 8px var(--n5-gutter) 8px 24px; background: var(--n5-surface); border: 1px solid var(--n5-border); border-radius: var(--n5-radius); font-family: ui-monospace, monospace; font-size: 0.75rem; overflow-wrap: anywhere; }
