@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { createLocalServer, readJson, sendText, urlToFile, rateLimiter, redact, newToken } from './mamori.mjs';
 import { isCrisis, crisisAnswer } from '../../server/crisis.mjs';
 import { refOk, loadOfficial, listOfficial } from '../brain/blueprint.mjs';
@@ -358,7 +359,7 @@ export async function startLab({
 
 // ---------------------------------------------------------------- 引数・鍵を聞く・起動
 function parseArgs(argv) {
-  const o = { dry: false, newKey: false, deleteKey: false, port: DEFAULTS.port, dataDir: undefined, model: DEFAULTS.model, perClient: DEFAULTS.perClient, overall: DEFAULTS.overall, maxUsd: null };
+  const o = { dry: false, open: false, newKey: false, deleteKey: false, port: DEFAULTS.port, dataDir: undefined, model: DEFAULTS.model, perClient: DEFAULTS.perClient, overall: DEFAULTS.overall, maxUsd: null };
   const count = (name, v, min, max) => {
     const n = Number(v);
     if (!Number.isInteger(n) || n < min || n > max) throw new Error(`${name} は ${min}〜${max} の数`);
@@ -366,6 +367,7 @@ function parseArgs(argv) {
   };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dry') o.dry = true;
+    else if (argv[i] === '--open') o.open = true;
     else if (argv[i] === '--new-key') o.newKey = true;
     else if (argv[i] === '--delete-key') o.deleteKey = true;
     else if (argv[i] === '--port') o.port = count('--port', argv[++i], 0, 65535);
@@ -416,6 +418,25 @@ function askKey(question) {
   });
 }
 
+// 準備ができたあとで、いつものブラウザに画面を開く(--open。Windows だけ)。
+// 2026-11-06 社長の知らせ「本物のAIでサイトが開かなくて会話できない」: 本物の .bat はブラウザを開かなかったため。
+// 開くのは、この窓口の http://127.0.0.1:番号/ だけ。explorer.exe を Windows の決まった場所から、決まった引数で起こす(シェルを通さない)。
+export function openBrowser(url, deps = {}) {
+  const platform = deps.platform || process.platform;
+  if (platform !== 'win32' || typeof url !== 'string' || !/^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(url)) return false;
+  const root = deps.systemRoot !== undefined ? deps.systemRoot : process.env.SystemRoot;
+  if (typeof root !== 'string' || !path.isAbsolute(root) || /^[\\/]{2}/.test(root)) return false;
+  const exe = path.join(root, 'explorer.exe');
+  try {
+    const child = (deps.spawn || spawn)(exe, [url], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => { /* 開けなくても、窓口は動かし続ける */ });
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const opt = parseArgs(process.argv.slice(2));
   if (opt.deleteKey) {
@@ -453,6 +474,11 @@ async function main() {
   const dataDir = opt.dataDir || defaultDataDir();
   const lab = await startLab({ dry: opt.dry, port: opt.port, dataDir, model: opt.model, key, perClient: opt.perClient, overall: opt.overall, maxUsd: opt.maxUsd });
   console.log(`http://127.0.0.1:${lab.port}/`);
+  if (opt.open) {
+    console.error(openBrowser(`http://127.0.0.1:${lab.port}/`)
+      ? '(ブラウザで画面を開きました。開かないときは、上の http://127.0.0.1:… をブラウザに貼ってください)'
+      : '(ブラウザを開けませんでした。上の http://127.0.0.1:… をブラウザに貼ってください)');
+  }
   console.error(opt.dry
     ? '(予行: にせのバカが答えています。外へはつながりません)'
     : `(本物のAI: モデル名 ${opt.model}【仮置き。違うと 502】。止めるときは Ctrl+C)`);
