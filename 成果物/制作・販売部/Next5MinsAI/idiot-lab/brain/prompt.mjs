@@ -62,7 +62,7 @@ Reply with one JSON object only (no other text), with these keys: mode, language
 - item: { shout_line, item_name, item_emoji, funny_reason, amazon_search_keyword } for the item to throw, or null.
 - In the first reply of a conversation (normal mode), action and item are both REQUIRED.
 ${bp.always_action
-    ? '- In EVERY normal reply, action is REQUIRED: it is the answer (what to do in the next 5 minutes). Give the answer first, then you may continue the story or ask something. item is optional from the second reply on. In safety mode, and after safety mode has appeared in this conversation, action may be null.'
+    ? '- In EVERY normal reply, action is REQUIRED: it is the answer (what to do in the next 5 minutes). State the answer clearly; what may come after it is decided by the blueprint rules. item is optional from the second reply on. In safety mode, and after safety mode has appeared in this conversation, action may be null.'
     : '- From the second reply on, action and item are optional (null is fine when you only talk back).'}
 - item_emoji is exactly one emoji.
 </output_rules>`);

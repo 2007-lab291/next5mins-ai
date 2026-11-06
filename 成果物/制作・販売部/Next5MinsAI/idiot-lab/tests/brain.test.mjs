@@ -451,3 +451,20 @@ test('安全モードが出たあと: 固定の一文は冗談・物語・行動
   const off = { ...loadOfficial('v004'), always_action: false };
   assert.equal(checkReply(noAction, { lang: 'ja', first: false, blueprint: off }).problems.length, 0);
 });
+
+test('v005(言い切って終わるバカ): お手本は問いかけで終わらず、「3回」を言わせない。言い切りの決まりと禁止がある', () => {
+  const bp = loadOfficial('v005');
+  checkBlueprint(bp);
+  assert.equal(bp.always_action, true);
+  assert.equal(bp.based_on, 'official:v004');
+  for (const ex of bp.examples) for (const t of ex.turns) {
+    assert.ok(t.reply.action, ex.label);
+    assert.ok(!/[?？]$|か。$/.test(t.reply.say), t.reply.say);
+    assert.ok(!/3回|3 times/.test(t.reply.say + t.reply.action.instruction), t.reply.action.instruction);
+  }
+  assert.ok(bp.rules.some((r) => r.includes('これをするといいだろう') && r.includes('問いかけや報告の頼みをつけない')));
+  assert.ok(bp.banned.some((r) => r.includes('○回言え')));
+  const sys = buildSystem(bp, 'ja');
+  assert.ok(sys.includes('decided by the blueprint rules'));
+  assert.ok(!sys.includes('ask something'));
+});
