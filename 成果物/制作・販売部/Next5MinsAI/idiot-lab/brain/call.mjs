@@ -97,7 +97,7 @@ export async function askIdiot(opts = {}) {
         msgs = stripThinking(msgs);
         continue;
       }
-      if (status === 401 || status === 403) return fail('auth', 'APIの鍵が受けつけられませんでした。鍵を確かめてください。');
+      if (status === 401 || status === 403) return fail('auth', 'APIの鍵が受けつけられませんでした。鍵が切れた・取り消したときは「バカ工房 鍵を貼り直す.bat」で貼り直してください。');
       if (status === 404 || (status === 400 && /model/i.test(bodyText))) return fail('model', 'モデルの名前が見つかりません。モデルの指定を確かめてください。');
       if (status === 429 || status === 529) return fail('busy', 'いま混んでいます。少し待ってからやり直してください。');
       return fail('api', `AIの呼び出しに失敗しました(状態 ${status})。`);

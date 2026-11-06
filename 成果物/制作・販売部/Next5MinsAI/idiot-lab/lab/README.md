@@ -6,12 +6,13 @@
 |---|---|
 | `server.mjs` | 起動・鍵を聞く・道(`/api/…`)・会話の保管・画面のファイルを出す。`startLab`(鍵を聞かない。テスト用)も出す |
 | `store.mjs` | データの置き場(下書き・記録)と、まとめ(Markdown)の組み立て |
+| `key-store.mjs` | 鍵の暗号化保存(Windows の DPAPI。`%LOCALAPPDATA%\Next5MinsAI\idiot-lab-key\key.dat`)。保存・読む・消す |
 | `mamori.mjs` | 守りの部品の写し(変えない) |
 
 ## 動かし方
 - 予行(にせのバカ。外へつながらない): `バカ工房を開く(予行).bat`
-- 本物(社長だけが動かす): `バカ工房 本物のAI.bat` を開いて鍵を貼る。鍵はメモリだけで、保存しません。
-- 自動テスト: `node --test tests/lab.test.mjs`(にせの fetch。外へはつながりません)
+- 本物(社長だけが動かす): `バカ工房 本物のAI.bat`。はじめてのときだけ鍵を貼る(暗号化して保存し、次から使う)。貼り直しは `バカ工房 鍵を貼り直す.bat`、消すのは `バカ工房 鍵を消す.bat`。
+- 自動テスト: `node --test tests/lab.test.mjs`(にせの fetch。外へはつながりません)・`node --test tests/key-store.test.mjs`(にせの暗号化と一時フォルダだけ。本物の鍵の置き場には触れません)
 
 ## 決めごと
 - 記録と下書きは、PC の中の `--data` の場所(Windows は `%LOCALAPPDATA%\Next5MinsAI\idiot-lab\`、ほかは `~/.local/share/next5mins-idiot-lab/`)。追記と新しい番号での保存だけで、消しません。

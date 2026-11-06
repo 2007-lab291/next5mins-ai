@@ -1,6 +1,7 @@
 // バカ工房の窓口(サーバー。②)。約束は ../CONTRACT.md の4〜6章。
 //   予行:  node lab/server.mjs --dry            (にせのバカ。外へつながらない)
-//   本物:  node lab/server.mjs                  (起動時に鍵を貼る。保存しない。社長だけが動かす)
+//   本物:  node lab/server.mjs                  (社長だけが動かす。保存した鍵があれば使う。無ければ貼って、暗号化して保存する)
+//          --new-key 鍵を貼り直して保存し直す / --delete-key 保存した鍵を消して終わる(決定事項 N5 2026-11-06 / 2)
 //   ほか:  --port 4910  --data <フォルダ>  --model claude-haiku-5-5  --per-client 20  --overall 60
 // 守りは mamori.mjs(守りの部品の写し。変えない)。外の部品は使わない。
 import fs from 'node:fs';
@@ -13,6 +14,7 @@ import { buildSystem } from '../brain/prompt.mjs';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
 import { fakeIdiot } from '../brain/fake.mjs';
 import { createStore, defaultDataDir, redactDeep, buildSummary } from './store.mjs';
+import { loadKey, saveKey, deleteKey, keyShapeOk, formatSavedAt } from './key-store.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..'); // idiot-lab/
@@ -356,7 +358,7 @@ export async function startLab({
 
 // ---------------------------------------------------------------- 引数・鍵を聞く・起動
 function parseArgs(argv) {
-  const o = { dry: false, port: DEFAULTS.port, dataDir: undefined, model: DEFAULTS.model, perClient: DEFAULTS.perClient, overall: DEFAULTS.overall, maxUsd: null };
+  const o = { dry: false, newKey: false, deleteKey: false, port: DEFAULTS.port, dataDir: undefined, model: DEFAULTS.model, perClient: DEFAULTS.perClient, overall: DEFAULTS.overall, maxUsd: null };
   const count = (name, v, min, max) => {
     const n = Number(v);
     if (!Number.isInteger(n) || n < min || n > max) throw new Error(`${name} は ${min}〜${max} の数`);
@@ -364,6 +366,8 @@ function parseArgs(argv) {
   };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--dry') o.dry = true;
+    else if (argv[i] === '--new-key') o.newKey = true;
+    else if (argv[i] === '--delete-key') o.deleteKey = true;
     else if (argv[i] === '--port') o.port = count('--port', argv[++i], 0, 65535);
     else if (argv[i] === '--data') {
       const d = String(argv[++i] || '');
@@ -414,10 +418,37 @@ function askKey(question) {
 
 async function main() {
   const opt = parseArgs(process.argv.slice(2));
+  if (opt.deleteKey) {
+    const r = deleteKey();
+    console.error(r.ok ? (r.existed ? '保存した鍵を消しました。次に本物を動かすときは、また鍵を貼ります。' : '保存した鍵はありませんでした。') : r.text);
+    process.exit(r.ok ? 0 : 1);
+  }
   let key = '';
   if (!opt.dry) {
-    key = await askKey('ANTHROPIC_API_KEY を貼って Enter: ');
-    if (!key) { console.error('鍵がないので終わります。'); process.exit(1); }
+    if (!opt.newKey) {
+      const r = await loadKey();
+      if (r.ok) {
+        key = r.key;
+        console.error(`(保存した鍵を使います。保存した日時: ${formatSavedAt(r.savedAt)}。貼り直すときは「バカ工房 鍵を貼り直す.bat」)`);
+      } else if (r.code !== 'no_key') {
+        console.error(r.text + '(今回は、鍵を貼ってください)');
+      }
+    }
+    if (!key) {
+      key = await askKey('ANTHROPIC_API_KEY を貼って Enter(暗号化して、このPCに保存します): ');
+      if (!key) { console.error('鍵がないので終わります。'); process.exit(1); }
+      if (!keyShapeOk(key)) { console.error('「sk-ant-」で始まる鍵の形ではありません。保存しないで終わります。'); process.exit(1); }
+      const s = await saveKey(key);
+      if (s.ok) {
+        console.error('(鍵を暗号化して保存しました。次からは貼らずに使えます。消すときは「バカ工房 鍵を消す.bat」)');
+      } else {
+        // 貼り直しで保存できなかったときは、前の鍵を残さない(次の起動で、黙って前の鍵が使われないように)
+        const d = opt.newKey ? deleteKey() : null;
+        console.error(s.text + '(今回貼った鍵だけで動きます)'
+          + (d && d.ok && d.existed ? '(前に保存した鍵は消しました)' : '')
+          + (d && !d.ok ? '(前に保存した鍵が残っています。「バカ工房 鍵を消す.bat」で消してください)' : ''));
+      }
+    }
   }
   const dataDir = opt.dataDir || defaultDataDir();
   const lab = await startLab({ dry: opt.dry, port: opt.port, dataDir, model: opt.model, key, perClient: opt.perClient, overall: opt.overall, maxUsd: opt.maxUsd });
