@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { openBrowser } from '../lab/server.mjs';
+import net from 'node:net';
+import { openBrowser, portBusy } from '../lab/server.mjs';
 
 const ROOT = path.join(path.parse(process.cwd()).root, 'Windows');
 const fakeSpawn = (calls) => (exe, args, opts) => { calls.push({ exe, args, opts }); return { on() {}, unref() {} }; };
@@ -30,4 +31,14 @@ test('ほかの URL・Windows 以外・あやしい SystemRoot では開かな�
 
 test('起こせなくても例外を投げない', () => {
   assert.equal(openBrowser('http://127.0.0.1:4910/', { platform: 'win32', systemRoot: ROOT, spawn: () => { throw new Error('x'); } }), false);
+});
+
+test('番号がもう使われているかを見分ける(前のバカ工房が動いているとき)', async () => {
+  const srv = net.createServer();
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+  assert.equal(await portBusy(port), true);
+  await new Promise(r => srv.close(r));
+  assert.equal(await portBusy(port), false);
+  assert.equal(await portBusy(0), false);
 });

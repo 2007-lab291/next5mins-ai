@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import net from 'node:net';
 import { createLocalServer, readJson, sendText, urlToFile, rateLimiter, redact, newToken } from './mamori.mjs';
 import { isCrisis, crisisAnswer } from '../../server/crisis.mjs';
 import { refOk, loadOfficial, listOfficial } from '../brain/blueprint.mjs';
@@ -437,12 +438,34 @@ export function openBrowser(url, deps = {}) {
   }
 }
 
+// その番号が、もう使われているか(前に開いたバカ工房がまだ動いているとき)。使われていれば true
+// 2026-11-06 社長の知らせ「鍵をはったのに開かない」: 動いている最中に .bat をもう一度開くと、番号がぶつかって止まっていたため。
+export function portBusy(port) {
+  return new Promise((resolve) => {
+    if (!Number.isInteger(port) || port <= 0) { resolve(false); return; }
+    const s = net.createServer();
+    s.once('error', (e) => resolve(Boolean(e && e.code === 'EADDRINUSE')));
+    s.listen(port, '127.0.0.1', () => s.close(() => resolve(false)));
+  });
+}
+
 async function main() {
   const opt = parseArgs(process.argv.slice(2));
   if (opt.deleteKey) {
     const r = deleteKey();
     console.error(r.ok ? (r.existed ? '保存した鍵を消しました。次に本物を動かすときは、また鍵を貼ります。' : '保存した鍵はありませんでした。') : r.text);
+    if (r.ok && r.existed && await portBusy(opt.port)) console.error(`(${opt.port} 番で動いている黒い画面は、閉じるまで、覚えている鍵で動き続けます。止めるときは、その画面を閉じてください)`);
     process.exit(r.ok ? 0 : 1);
+  }
+  // もう動いているときは、鍵を読まず・聞かずに、動いている画面を開いて終わる
+  if (!opt.deleteKey && await portBusy(opt.port)) {
+    const url = `http://127.0.0.1:${opt.port}/`;
+    console.error(`${opt.port} 番は、もう使われています(ふつうは、前に開いたバカ工房の黒い画面)。新しくは起動しません。`);
+    console.error(opt.open && openBrowser(url) ? 'ブラウザで、動いている画面を開きました。' : `ブラウザで ${url} を開いてください。`);
+    console.error(opt.newKey
+      ? '鍵を貼り直すときは、前の黒い画面を閉じてから、もう一度「バカ工房 鍵を貼り直す.bat」を開いてください。'
+      : '起動し直したいときは、前の黒い画面を閉じてから、もう一度開いてください。');
+    process.exit(0);
   }
   let key = '';
   if (!opt.dry) {
