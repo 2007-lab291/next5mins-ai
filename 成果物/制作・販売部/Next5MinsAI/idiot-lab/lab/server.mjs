@@ -16,6 +16,10 @@ import { loadAverageOfficial, listAverageOfficial } from '../brain/average/bluep
 import { buildAverageSystem, AVERAGE_AFTER_SAFETY_NOTE } from '../brain/average/prompt.mjs';
 import { askAverage } from '../brain/average/call.mjs';
 import { fakeAverage } from '../brain/average/fake.mjs';
+import { loadGodOfficial, listGodOfficial } from '../brain/god/blueprint.mjs';
+import { buildGodSystem, GOD_AFTER_SAFETY_NOTE, buildGodVariation } from '../brain/god/prompt.mjs';
+import { askGod } from '../brain/god/call.mjs';
+import { fakeGod } from '../brain/god/fake.mjs';
 import { buildSystem, buildVariation, AFTER_SAFETY_NOTE } from '../brain/prompt.mjs';
 import { randomInt } from 'node:crypto';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
@@ -93,19 +97,36 @@ const CHARS = {
     label: '🤪 バカ',
     list: listOfficial, load: loadOfficial, system: buildSystem, ask: askIdiot, fake: fakeIdiot,
     afterSafety: AFTER_SAFETY_NOTE, useVariety: true,
+    variation: (conv, first, h) => { const picks = h.pickVariety(conv, first); return { picks, text: buildVariation(picks) }; },
     crisis: lang => ({ mode: 'safety', language: lang, neta: 'none', say: crisisAnswer(lang).message, action: null, item: null }),
   },
   average: {
     label: '😐 平凡',
     list: listAverageOfficial, load: loadAverageOfficial, system: buildAverageSystem, ask: askAverage, fake: fakeAverage,
     afterSafety: AVERAGE_AFTER_SAFETY_NOTE, useVariety: false,
+    variation: null,
     crisis: lang => ({ mode: 'safety', language: lang, step: 'none', say: crisisAnswer(lang).message, action: null }),
+  },
+  god: {
+    label: '⚡ 神',
+    list: listGodOfficial, load: loadGodOfficial, system: buildGodSystem, ask: askGod, fake: fakeGod,
+    afterSafety: GOD_AFTER_SAFETY_NOTE, useVariety: false,
+    // 毎回、力の型を1つえらぶ(前の回と同じは避ける。1回目は saga も避ける)。空の id は渡さない
+    variation: (conv, first) => {
+      const all = conv.blueprint.power_types.map(n => n.id);
+      let ids = all.filter(id => id !== conv.lastPower && !(first && id === 'saga'));
+      if (!ids.length) ids = all;
+      const id = ids[randomInt(ids.length)];
+      conv.lastPower = id;
+      return { picks: { power: id }, text: buildGodVariation(id) };
+    },
+    crisis: lang => ({ mode: 'safety', language: lang, power: 'none', say: crisisAnswer(lang).message, action: null }),
   },
 };
 // char を確かめる。省く(null・undefined)とバカ。ほかはだめなら 400
 function checkChar(v) {
   if (v === undefined || v === null) return 'idiot';
-  if (typeof v !== 'string' || !Object.hasOwn(CHARS, v)) throw bad('キャラの指定がおかしいです(バカか平凡)。');
+  if (typeof v !== 'string' || !Object.hasOwn(CHARS, v)) throw bad('キャラの指定がおかしいです(バカ・平凡・神)。');
   return v;
 }
 
@@ -222,7 +243,8 @@ export async function startLab({
       thinking = ''; content = null; tries = 0;
     } else {
       const messages = [...historyBase, { role: 'user', content: userText }];
-      picks = conv.safety || !C.useVariety ? null : pickVariety(conv, first); // 安全モードが出た会話には、種をつけない(安全点検 2026-11-06)
+      const vr = conv.safety || !C.variation ? null : C.variation(conv, first, { pickVariety }); // 安全モードが出た会話には、種をつけない(安全点検 2026-11-06)
+      picks = vr ? vr.picks : null;
       let r;
       if (!dry && maxUsd !== null && totals.usd + (inflight + 1) * WORST_USD > maxUsd) {
         throw new LabError(429, 'over_budget', `起動してからの費用が、上限(約 $${maxUsd})に近づいたので止めました。続けるなら、黒い画面を閉じて、上限を上げて起動し直してください。`, { totals: totalsOut() });
@@ -235,7 +257,7 @@ export async function startLab({
           r = await C.ask({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, fetchImpl,
             // 安全モードが出た会話では、答え(行動カード)を求めず、まじめにする固定の一文を付ける(安全点検 2026-11-06)
             blueprint: conv.safety ? { ...conv.blueprint, always_action: false } : conv.blueprint,
-            variation: conv.safety ? C.afterSafety : (C.useVariety ? buildVariation(picks) : undefined) });
+            variation: conv.safety ? C.afterSafety : (vr ? vr.text : undefined) });
         } finally { inflight -= 1; }
       }
       if (!r.ok) fail = r;

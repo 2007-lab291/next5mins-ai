@@ -13,7 +13,14 @@
   var editing = null;          // 設計図タブで開いている設計図
   var SEND_MAX = 400;
   var convChar = 'idiot';      // いまの会話のキャラ
-  var CHAR_LABEL = { idiot: '🤪 バカ', average: '😐 平凡' };
+  // キャラごとの違いの表。知らない char は、バカとして扱う。
+  var CHARS = {
+    idiot:   { label: '🤪 バカ', bubble: 'bot-bubble', tag: 'neta-tag', typesKey: 'neta_types', replyKey: 'neta', consult: 'バカに相談する', legend: 'ネタの型(neta_types)', persona: 'バカの人物像(persona)', hasItem: true },
+    average: { label: '😐 平凡', bubble: 'bot-bubble avg-bubble', tag: 'neta-tag avg-tag', typesKey: 'step_types', replyKey: 'step', consult: '平凡に相談する', legend: '一歩の型(step_types)', persona: '平凡の人物像(persona)', hasItem: false },
+    god:     { label: '⚡ 神', bubble: 'bot-bubble god-bubble', tag: 'neta-tag god-tag', typesKey: 'power_types', replyKey: 'power', consult: '神に相談する', legend: '力の型(power_types)', persona: '神の人物像(persona)', hasItem: false }
+  };
+  function normChar(key) { return (key === 'average' || key === 'god') ? key : 'idiot'; }
+  function cfg(key) { return CHARS[normChar(key)]; }
 
   function cacheKey(ch, ref) { return ch + ':' + ref; }
   // 選べるキャラ(古いサーバーで chars が無ければ、バカだけ)
@@ -26,8 +33,7 @@
     for (var i = 0; i < l.length; i++) if (l[i].key === key) return l[i];
     return l[0];
   }
-  function charLabel(key) { return CHAR_LABEL[key] || charInfo(key).label || key; }
-  function isAvg(key) { return key === 'average'; }
+  function charLabel(key) { return (CHARS[key] && CHARS[key].label) || charInfo(key).label || key; }
   function qs(ch, ref, extra) {
     return '?char=' + encodeURIComponent(ch) + '&ref=' + encodeURIComponent(ref) + (extra || '');
   }
@@ -180,7 +186,7 @@
   function renderChatChar() {
     var ch = $('chatChar').value;
     $('thinkingWho').textContent = charLabel(ch);
-    $('chatLabel').textContent = isAvg(ch) ? '平凡に相談する' : 'バカに相談する';
+    $('chatLabel').textContent = cfg(ch).consult;
   }
 
   function lockSettings(on) {
@@ -223,7 +229,7 @@
       if (r.ok) bpCache[key] = r.data;
     }
     var bp = bpCache[key];
-    var list = bp && (isAvg(ch) ? bp.step_types : bp.neta_types);
+    var list = bp && bp[cfg(ch).typesKey];
     if (Array.isArray(list)) {
       for (var i = 0; i < list.length; i++) {
         if (list[i].id === id) return list[i].name;
@@ -242,13 +248,13 @@
 
   function buildBot(d, neta) {
     var r = d.reply || {};
-    var ch = d.char === 'average' ? 'average' : 'idiot';
-    var avg = isAvg(ch);
+    var ch = normChar(d.char);
+    var c = cfg(ch);
     var row = el('div', 'bot-row');
-    var bubble = el('div', avg ? 'bot-bubble avg-bubble' : 'bot-bubble');
+    var bubble = el('div', c.bubble);
     var head = el('div', 'bot-head');
     head.appendChild(el('span', 'bot-name', charLabel(ch)));
-    if (neta) head.appendChild(el('span', avg ? 'neta-tag avg-tag' : 'neta-tag', neta));
+    if (neta) head.appendChild(el('span', c.tag, neta));
     if (d.filtered || r.mode === 'safety') head.appendChild(el('span', 'safety-tag', '安全のための返事'));
     bubble.appendChild(head);
 
@@ -266,7 +272,7 @@
       card.appendChild(el('p', 'action-why', r.action.why_it_works));
       bubble.appendChild(card);
     }
-    if (r.item && !avg) {
+    if (r.item && c.hasItem) {
       var box = el('div', 'item-box');
       box.appendChild(el('div', 'item-emoji', r.item.item_emoji));
       box.appendChild(el('p', 'item-shout', r.item.shout_line));
@@ -359,8 +365,8 @@
   }
 
   async function showBot(d, replaceRow) {
-    var ch = d.char === 'average' ? 'average' : 'idiot';
-    var name = await netaName(ch, d.ref, d.reply && (ch === 'average' ? d.reply.step : d.reply.neta));
+    var ch = normChar(d.char);
+    var name = await netaName(ch, d.ref, d.reply && d.reply[cfg(ch).replyKey]);
     var entry = buildBot(d, name);
     if (replaceRow && replaceRow.parentNode) {
       replaceRow.parentNode.replaceChild(entry.row, replaceRow);
@@ -406,7 +412,7 @@
     conv = d.conv;
     lockSettings(true);
     // 会話の設定を、サーバーの値に合わせて見せる
-    convChar = d.char === 'average' ? 'average' : 'idiot';
+    convChar = normChar(d.char);
     if (d.char) $('chatChar').value = convChar;
     if (d.ref) $('chatRef').value = d.ref;
     if (d.lang) $('chatLang').value = d.lang;
@@ -443,11 +449,11 @@
 
   // ---------- 設計図 ----------
   function renderBpChar() {
-    var avg = isAvg($('bpChar').value);
-    $('netaLegend').textContent = avg ? '一歩の型(step_types)' : 'ネタの型(neta_types)';
-    $('bpPersonaLabel').textContent = avg ? '平凡の人物像(persona)' : 'バカの人物像(persona)';
-    show($('itemRulesField'), !avg);
-    show($('shoutGroup'), !avg);
+    var c = cfg($('bpChar').value);
+    $('netaLegend').textContent = c.legend;
+    $('bpPersonaLabel').textContent = c.persona;
+    show($('itemRulesField'), c.hasItem);
+    show($('shoutGroup'), c.hasItem);
   }
 
   var TEXT_FIELDS = ['title', 'note', 'persona', 'core_rule'];
@@ -484,12 +490,12 @@
 
   function fillForm(bp) {
     TEXT_FIELDS.forEach(function (k) { $('bp-' + k).value = bp[k] || ''; });
-    (isAvg($('bpChar').value) ? LIST_FIELDS_AVG : LIST_FIELDS).forEach(function (k) { $('bp-' + k).value = (bp[k] || []).join('\n'); });
+    (cfg($('bpChar').value).hasItem ? LIST_FIELDS : LIST_FIELDS_AVG).forEach(function (k) { $('bp-' + k).value = (bp[k] || []).join('\n'); });
     clear($('netaList'));
-    (isAvg($('bpChar').value) ? (bp.step_types || []) : (bp.neta_types || [])).forEach(addNetaRow);
+    (bp[cfg($('bpChar').value).typesKey] || []).forEach(addNetaRow);
     $('bp-shout-ja').value = (bp.shout_line && bp.shout_line.ja) || '';
     $('bp-shout-en').value = (bp.shout_line && bp.shout_line.en) || '';
-    if (isAvg($('bpChar').value)) { $('bp-item_rules').value = ''; $('bp-shout-ja').value = ''; $('bp-shout-en').value = ''; }
+    if (!cfg($('bpChar').value).hasItem) { $('bp-item_rules').value = ''; $('bp-shout-ja').value = ''; $('bp-shout-en').value = ''; }
     ['ja', 'en'].forEach(function (lg) {
       ['say', 'instruction', 'why_it_works'].forEach(function (k) {
         var v = bp.length && bp.length[lg] ? bp.length[lg][k] : '';
@@ -522,7 +528,8 @@
       title: $('bp-title').value.trim(), note: $('bp-note').value.trim(),
       persona: $('bp-persona').value.trim(), core_rule: $('bp-core_rule').value.trim()
     };
-    var avg = isAvg(editing.char || $('bpChar').value);
+    var c = cfg(editing.char || $('bpChar').value);
+    var avg = !c.hasItem;
     var types = Array.prototype.map.call($('netaList').children, function (item) {
       return {
         id: item.querySelector('.neta-id').value.trim(),
@@ -530,7 +537,7 @@
         how: item.querySelector('.neta-how').value.trim()
       };
     });
-    if (avg) bp.step_types = types; else bp.neta_types = types;
+    bp[c.typesKey] = types;
     (avg ? LIST_FIELDS_AVG : LIST_FIELDS).forEach(function (k) { bp[k] = lines('bp-' + k); });
     if (!avg) bp.shout_line = { ja: $('bp-shout-ja').value.trim(), en: $('bp-shout-en').value.trim() };
     bp.length = { ja: {}, en: {} };

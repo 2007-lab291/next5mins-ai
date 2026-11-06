@@ -133,3 +133,7 @@ textarea { resize: vertical; }
 .bot-bubble.avg-bubble { border-left: 4px solid var(--avg); background: var(--avg-bg); }
 .avg-bubble .action-card { border-left-color: var(--avg); }
 .avg-bubble .action-sub { color: var(--avg-dark); }
+.neta-tag.god-tag { background: #F3E8FF; color: #581C87; border-color: #A855F7; }
+.bot-bubble.god-bubble { border-left: 4px solid #A855F7; background: #F3E8FF; }
+.god-bubble .action-card { border-left-color: #A855F7; }
+.god-bubble .action-sub { color: #581C87; }

@@ -8,6 +8,8 @@ import path from 'node:path';
 import { startLab } from '../lab/server.mjs';
 import { loadOfficial } from '../brain/blueprint.mjs';
 import { loadAverageOfficial } from '../brain/average/blueprint.mjs';
+import { loadGodOfficial } from '../brain/god/blueprint.mjs';
+import { buildGodVariation, GOD_AFTER_SAFETY_NOTE } from '../brain/god/prompt.mjs';
 import { isCrisis } from '../../server/crisis.mjs';
 
 const KEY = 'sk-test-not-a-real-key-0000';
@@ -546,8 +548,8 @@ function fakeAvgApi() {
 test('平凡: /api/state の chars。前からの blueprints・defaultRef はバカのまま', async () => {
   await withLab({ dry: true }, async lab => {
     const s = (await get(lab, '/api/state')).json;
-    assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average']);
-    assert.deepEqual(s.chars.map(c => c.label), ['🤪 バカ', '😐 平凡']);
+    assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average', 'god']);
+    assert.deepEqual(s.chars.map(c => c.label), ['🤪 バカ', '😐 平凡', '⚡ 神']);
     assert.equal(s.chars[0].defaultRef, s.defaultRef);
     assert.deepEqual(s.chars[0].blueprints, s.blueprints);
     assert.equal(s.chars[1].defaultRef, 'official:v001');
@@ -693,5 +695,160 @@ test('平凡: 本物の道は askAverage の schema(step があり item が無�
     assert.equal(api.calls[1].body.messages.length, 3);
     assert.equal(b.json.totals.turns, 2);
     assert.ok(b.json.totals.usd > 0);
+  });
+});
+
+// ---------------------------------------------------------------- 神(9-5)
+const godBody = (over = {}) => chatBody({ char: 'god', ...over });
+const godExample = () => loadGodOfficial('v001').examples.find(e => e.lang === 'ja').turns[0].reply;
+function fakeGodApi() {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push({ url, init, body });
+    const content = [{ type: 'text', text: JSON.stringify({ ...godExample(), say: `にせの神${calls.length}` }) }];
+    return { ok: true, status: 200, text: JSON.stringify({ content, stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } }) };
+  };
+  return { fetchImpl, calls };
+}
+const readTurns = dataDir => {
+  const dir = path.join(dataDir, 'logs');
+  return fs.readdirSync(dir).flatMap(f => fs.readFileSync(path.join(dir, f), 'utf8').trim().split('\n').map(x => JSON.parse(x))).filter(x => x.type === 'turn');
+};
+
+test('神: /api/state の chars はバカ・平凡・神の順', async () => {
+  await withLab({ dry: true }, async lab => {
+    const s = (await get(lab, '/api/state')).json;
+    assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average', 'god']);
+    assert.equal(s.chars[2].label, '⚡ 神');
+    assert.equal(s.chars[2].defaultRef, 'official:v001');
+    assert.equal(s.chars[2].blueprints[0].ref, 'official:v001');
+  });
+});
+
+test('神: 予行の会話。action があり item キーが無い・char は会話に固定', async () => {
+  await withLab({ dry: true }, async lab => {
+    const a = await post(lab, '/api/chat', godBody());
+    assert.equal(a.status, 200, a.text);
+    assert.equal(a.json.char, 'god');
+    assert.ok(a.json.reply.action);
+    assert.ok(!('item' in a.json.reply) && !('neta' in a.json.reply) && !('step' in a.json.reply));
+    assert.ok(typeof a.json.reply.power === 'string');
+    const b = await post(lab, '/api/chat', chatBody({ conv: a.json.conv, char: 'idiot', text: '続き' }));
+    assert.equal(b.json.char, 'god', '続きでは、送られた char は無視');
+  });
+});
+
+test('神: つらい入力は AI に送らず power:none。続きは safety の一文つき', async () => {
+  const api = fakeGodApi();
+  await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async (lab, dataDir) => {
+    const a = await post(lab, '/api/chat', godBody({ text: CRISIS }));
+    assert.equal(a.status, 200, a.text);
+    assert.equal(api.calls.length, 0);
+    assert.equal(a.json.filtered, true);
+    assert.equal(a.json.reply.mode, 'safety');
+    assert.equal(a.json.reply.power, 'none');
+    assert.equal(a.json.reply.action, null);
+    assert.ok(!('item' in a.json.reply) && !('step' in a.json.reply));
+    assert.equal(readTurns(dataDir)[0].picks, null);
+    const b = await post(lab, '/api/chat', godBody({ conv: a.json.conv, text: 'ありがとう' }));
+    assert.equal(b.status, 200, b.text);
+    assert.equal(api.calls[0].body.system.at(-1).text, GOD_AFTER_SAFETY_NOTE, 'safety のあとの一文が付く');
+    assert.equal(readTurns(dataDir).at(-1).picks, null);
+  });
+});
+
+test('神: 下書きは god-drafts/ に入り、バカ・平凡の番号と別', async () => {
+  await withLab({ dry: true }, async (lab, dataDir) => {
+    const base = await get(lab, '/api/blueprint?char=god&ref=official:v001');
+    assert.equal(base.status, 200, base.text);
+    assert.ok(base.json.power_types, '神の設計図');
+    const idBase = (await get(lab, '/api/blueprint?ref=official:v001')).json;
+    await post(lab, '/api/blueprint', { base: 'official:v001', blueprint: idBase });
+    const mine = structuredClone(base.json);
+    mine.title = '神の下書き';
+    const s1 = await post(lab, '/api/blueprint', { char: 'god', base: 'official:v001', blueprint: mine });
+    assert.equal(s1.status, 200, s1.text);
+    assert.equal(s1.json.ref, 'draft:d001', '番号はキャラごと');
+    assert.ok(fs.existsSync(path.join(dataDir, 'god-drafts', 'd001.json')));
+    assert.ok(fs.existsSync(path.join(dataDir, 'drafts', 'd001.json')));
+    const wrong = await post(lab, '/api/blueprint', { char: 'god', base: 'official:v001', blueprint: idBase });
+    assert.equal(wrong.status, 400);
+    const st = (await get(lab, '/api/state')).json;
+    assert.deepEqual(st.chars.find(c => c.key === 'god').blueprints.filter(b => b.kind === 'draft').map(b => b.ref), ['draft:d001']);
+    assert.equal((await get(lab, '/api/blueprint?char=god&ref=draft:d001')).json.title, '神の下書き');
+    const a = await post(lab, '/api/chat', godBody({ ref: 'draft:d001' }));
+    assert.equal(a.status, 200, a.text);
+  });
+});
+
+test('神: /api/system に power_types がある。バカ・平凡の指示文とは別', async () => {
+  await withLab({ dry: true }, async lab => {
+    const g = await get(lab, '/api/system?char=god&ref=official:v001&lang=ja');
+    assert.equal(g.status, 200, g.text);
+    assert.ok(g.json.system.includes('power_types'));
+    assert.ok(!(await get(lab, '/api/system?ref=official:v001&lang=ja')).json.system.includes('power_types'));
+    assert.ok(!(await get(lab, '/api/system?char=average&ref=official:v001&lang=ja')).json.system.includes('power_types'));
+  });
+});
+
+test('神: まとめは神の回だけ。見出し・力の型・記録の行に char と picks', async () => {
+  await withLab({ dry: true }, async (lab, dataDir) => {
+    await post(lab, '/api/chat', godBody({ text: '神への相談' }));
+    await post(lab, '/api/chat', chatBody({ text: 'バカへの相談' }));
+    await post(lab, '/api/chat', avgBody({ text: '平凡への相談' }));
+    const sum = async char => (await post(lab, '/api/summary', { char, days: 1, onlyRated: false, includeDraft: null })).json.markdown;
+    const g = await sum('god');
+    assert.ok(g.includes('# 神のまとめ('));
+    assert.ok(g.includes('神への相談') && !g.includes('バカへの相談') && !g.includes('平凡への相談'));
+    assert.ok(g.includes('神: 「') && g.includes('行動「') && g.includes('なぜ効くか: ') && g.includes('力の型: ') && !g.includes('一歩の型') && !g.includes('ネタの型'));
+    assert.ok(!(await sum('average')).includes('神への相談'));
+    assert.ok(!(await sum('idiot')).includes('神への相談'));
+    const turns = readTurns(dataDir);
+    assert.deepEqual(turns.map(r => r.char), ['god', 'idiot', 'average']);
+    const ids = loadGodOfficial('v001').power_types.map(t => t.id);
+    assert.ok(ids.includes(turns[0].picks.power) && turns[0].picks.power !== 'saga');
+    assert.equal(turns[2].picks, null, '平凡は種なしのまま');
+  });
+});
+
+test('神: 本物の道は askGod の schema(power があり item が無い)で送り、毎回 power_types から選ぶ', async () => {
+  const api = fakeGodApi();
+  const ids = loadGodOfficial('v001').power_types.map(t => t.id);
+  await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async (lab, dataDir) => {
+    let conv = null;
+    for (let i = 0; i < 6; i++) {
+      const r = await post(lab, '/api/chat', godBody({ conv, text: `${i + 1}回目の相談` }));
+      assert.equal(r.status, 200, r.text);
+      conv = r.json.conv;
+    }
+    const sch = api.calls[0].body.output_config.format.schema;
+    assert.ok(sch.required.includes('power'));
+    assert.ok(!sch.required.includes('item') && !('item' in sch.properties));
+    const turns = readTurns(dataDir);
+    assert.equal(turns.length, 6);
+    turns.forEach((t, i) => {
+      const id = t.picks.power;
+      assert.ok(ids.includes(id), `選んだ id は power_types のどれか: ${id}`);
+      assert.equal(api.calls[i].body.system.length, 2);
+      assert.equal(api.calls[i].body.system[1].text, buildGodVariation(id), '2つ目の塊に種の文');
+      if (i === 0) assert.notEqual(id, 'saga', '1回目は saga でない');
+      else assert.notEqual(id, turns[i - 1].picks.power, '前の回と同じでない');
+    });
+    // safety のあと
+    const s = await post(lab, '/api/chat', godBody({ conv, text: CRISIS }));
+    assert.equal(s.json.filtered, true);
+    const after = await post(lab, '/api/chat', godBody({ conv, text: 'ありがとう' }));
+    assert.equal(after.status, 200, after.text);
+    assert.equal(api.calls.at(-1).body.system.at(-1).text, GOD_AFTER_SAFETY_NOTE);
+    assert.equal(readTurns(dataDir).at(-1).picks, null);
+  });
+});
+
+test('神: おかしい char の文は「バカ・平凡・神」', async () => {
+  await withLab({ dry: true }, async lab => {
+    const r = await post(lab, '/api/chat', chatBody({ char: 'genius' }));
+    assert.equal(r.status, 400);
+    assert.equal(r.json.message, 'キャラの指定がおかしいです(バカ・平凡・神)。');
   });
 });
