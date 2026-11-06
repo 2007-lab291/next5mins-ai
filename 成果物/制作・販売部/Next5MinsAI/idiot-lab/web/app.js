@@ -9,9 +9,28 @@
   var conv = null;             // 会話の id(新しい会話は null)
   var busy = false;            // 送っている間
   var lastBot = null;          // いちばん新しい答えの { row, data, ... }
-  var bpCache = {};            // ref -> 設計図(ネタの型の名前を引くため)
+  var bpCache = {};            // 'キャラ:ref' -> 設計図(ネタ/一歩の型の名前を引くため)
   var editing = null;          // 設計図タブで開いている設計図
   var SEND_MAX = 400;
+  var convChar = 'idiot';      // いまの会話のキャラ
+  var CHAR_LABEL = { idiot: '🤪 バカ', average: '😐 平凡' };
+
+  function cacheKey(ch, ref) { return ch + ':' + ref; }
+  // 選べるキャラ(古いサーバーで chars が無ければ、バカだけ)
+  function charList() {
+    if (state && Array.isArray(state.chars) && state.chars.length) return state.chars;
+    return [{ key: 'idiot', label: '🤪 バカ', blueprints: (state && state.blueprints) || [], defaultRef: state && state.defaultRef }];
+  }
+  function charInfo(key) {
+    var l = charList();
+    for (var i = 0; i < l.length; i++) if (l[i].key === key) return l[i];
+    return l[0];
+  }
+  function charLabel(key) { return CHAR_LABEL[key] || charInfo(key).label || key; }
+  function isAvg(key) { return key === 'average'; }
+  function qs(ch, ref, extra) {
+    return '?char=' + encodeURIComponent(ch) + '&ref=' + encodeURIComponent(ref) + (extra || '');
+  }
 
   // ---------- 小さな道具 ----------
   function el(tag, cls, text) {
@@ -53,7 +72,7 @@
   function renderTop() {
     if (!state) return;
     $('modeBadge').textContent = state.dry ? '予行' : '本物';
-    $('modelName').textContent = state.dry ? 'モデル: にせのバカ(' + state.model + ')' : 'モデル: ' + state.model;
+    $('modelName').textContent = state.dry ? 'モデル: にせのAI(' + state.model + ')' : 'モデル: ' + state.model;
     show($('dryBand'), !!state.dry);
     renderTotals(state.totals);
   }
@@ -75,16 +94,29 @@
     return b.ref.replace(/^[a-z]+:/, '') + ' ' + b.title + '(' + kind + ')';
   }
 
-  function fillRefSelect(sel, keepValue) {
-    var prev = keepValue || sel.value;
+  function fillCharSelect(sel) {
+    var prev = sel.value;
     clear(sel);
-    (state.blueprints || []).forEach(function (b) {
+    charList().forEach(function (c) {
+      var o = el('option', '', c.label || charLabel(c.key));
+      o.value = c.key;
+      sel.appendChild(o);
+    });
+    var has = Array.prototype.some.call(sel.options, function (o) { return o.value === prev; });
+    sel.value = has ? prev : charList()[0].key;
+  }
+
+  function fillRefSelect(sel, charSel, keepValue) {
+    var prev = keepValue || sel.value;
+    var info = charInfo(charSel.value);
+    clear(sel);
+    (info.blueprints || []).forEach(function (b) {
       var o = el('option', '', refLabel(b));
       o.value = b.ref;
       sel.appendChild(o);
     });
     var has = Array.prototype.some.call(sel.options, function (o) { return o.value === prev; });
-    sel.value = has ? prev : state.defaultRef;
+    sel.value = has ? prev : info.defaultRef;
   }
 
   function fillThink() {
@@ -106,7 +138,7 @@
     var none = el('option', '', 'なし');
     none.value = '';
     sel.appendChild(none);
-    (state.blueprints || []).filter(function (b) { return b.kind === 'draft'; }).forEach(function (b) {
+    (charInfo($('sumChar').value).blueprints || []).filter(function (b) { return b.kind === 'draft'; }).forEach(function (b) {
       var o = el('option', '', refLabel(b));
       o.value = b.ref;
       sel.appendChild(o);
@@ -120,8 +152,13 @@
     hideError($('loadError'));
     state = r.data;
     renderTop();
-    fillRefSelect($('chatRef'));
-    fillRefSelect($('bpRef'));
+    fillCharSelect($('chatChar'));
+    fillCharSelect($('bpChar'));
+    fillCharSelect($('sumChar'));
+    fillRefSelect($('chatRef'), $('chatChar'));
+    fillRefSelect($('bpRef'), $('bpChar'));
+    renderChatChar();
+    renderBpChar();
     fillThink();
     fillDraftSelect();
     return true;
@@ -140,7 +177,14 @@
   }
 
   // ---------- 会話 ----------
+  function renderChatChar() {
+    var ch = $('chatChar').value;
+    $('thinkingWho').textContent = charLabel(ch);
+    $('chatLabel').textContent = isAvg(ch) ? '平凡に相談する' : 'バカに相談する';
+  }
+
   function lockSettings(on) {
+    $('chatChar').disabled = on;
     $('chatRef').disabled = on;
     $('chatLang').disabled = on;
     $('chatThink').disabled = on;
@@ -170,16 +214,19 @@
     if (!row.hidden && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
   }
 
-  async function netaName(ref, id) {
-    if (id === 'none') return null;
-    if (!bpCache[ref]) {
-      var r = await api('/api/blueprint?ref=' + encodeURIComponent(ref));
-      if (r.ok) bpCache[ref] = r.data;
+  // ネタ(バカ)・一歩(平凡)の型の名前を、設計図から引く
+  async function netaName(ch, ref, id) {
+    if (!id || id === 'none') return null;
+    var key = cacheKey(ch, ref);
+    if (!bpCache[key]) {
+      var r = await api('/api/blueprint' + qs(ch, ref));
+      if (r.ok) bpCache[key] = r.data;
     }
-    var bp = bpCache[ref];
-    if (bp && Array.isArray(bp.neta_types)) {
-      for (var i = 0; i < bp.neta_types.length; i++) {
-        if (bp.neta_types[i].id === id) return bp.neta_types[i].name;
+    var bp = bpCache[key];
+    var list = bp && (isAvg(ch) ? bp.step_types : bp.neta_types);
+    if (Array.isArray(list)) {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) return list[i].name;
       }
     }
     return id;
@@ -195,11 +242,13 @@
 
   function buildBot(d, neta) {
     var r = d.reply || {};
+    var ch = d.char === 'average' ? 'average' : 'idiot';
+    var avg = isAvg(ch);
     var row = el('div', 'bot-row');
-    var bubble = el('div', 'bot-bubble');
+    var bubble = el('div', avg ? 'bot-bubble avg-bubble' : 'bot-bubble');
     var head = el('div', 'bot-head');
-    head.appendChild(el('span', 'bot-name', '🤪 バカ'));
-    if (neta) head.appendChild(el('span', 'neta-tag', neta));
+    head.appendChild(el('span', 'bot-name', charLabel(ch)));
+    if (neta) head.appendChild(el('span', avg ? 'neta-tag avg-tag' : 'neta-tag', neta));
     if (d.filtered || r.mode === 'safety') head.appendChild(el('span', 'safety-tag', '安全のための返事'));
     bubble.appendChild(head);
 
@@ -217,7 +266,7 @@
       card.appendChild(el('p', 'action-why', r.action.why_it_works));
       bubble.appendChild(card);
     }
-    if (r.item) {
+    if (r.item && !avg) {
       var box = el('div', 'item-box');
       box.appendChild(el('div', 'item-emoji', r.item.item_emoji));
       box.appendChild(el('p', 'item-shout', r.item.shout_line));
@@ -310,7 +359,8 @@
   }
 
   async function showBot(d, replaceRow) {
-    var name = await netaName(d.ref, d.reply && d.reply.neta);
+    var ch = d.char === 'average' ? 'average' : 'idiot';
+    var name = await netaName(ch, d.ref, d.reply && (ch === 'average' ? d.reply.step : d.reply.neta));
     var entry = buildBot(d, name);
     if (replaceRow && replaceRow.parentNode) {
       replaceRow.parentNode.replaceChild(entry.row, replaceRow);
@@ -341,7 +391,7 @@
     $('chatText').value = '';
     setBusy(true);
     var r = await api('/api/chat', {
-      conv: conv, ref: $('chatRef').value, lang: $('chatLang').value, think: $('chatThink').value, text: text
+      conv: conv, char: $('chatChar').value, ref: $('chatRef').value, lang: $('chatLang').value, think: $('chatThink').value, text: text
     });
     setBusy(false);
     if (!r.ok) {
@@ -356,6 +406,8 @@
     conv = d.conv;
     lockSettings(true);
     // 会話の設定を、サーバーの値に合わせて見せる
+    convChar = d.char === 'average' ? 'average' : 'idiot';
+    if (d.char) $('chatChar').value = convChar;
     if (d.ref) $('chatRef').value = d.ref;
     if (d.lang) $('chatLang').value = d.lang;
     if (d.think) $('chatThink').value = d.think;
@@ -390,8 +442,17 @@
   }
 
   // ---------- 設計図 ----------
+  function renderBpChar() {
+    var avg = isAvg($('bpChar').value);
+    $('netaLegend').textContent = avg ? '一歩の型(step_types)' : 'ネタの型(neta_types)';
+    $('bpPersonaLabel').textContent = avg ? '平凡の人物像(persona)' : 'バカの人物像(persona)';
+    show($('itemRulesField'), !avg);
+    show($('shoutGroup'), !avg);
+  }
+
   var TEXT_FIELDS = ['title', 'note', 'persona', 'core_rule'];
   var LIST_FIELDS = ['rules', 'banned', 'conversation_rules', 'item_rules'];
+  var LIST_FIELDS_AVG = ['rules', 'banned', 'conversation_rules'];
 
   function addNetaRow(n) {
     var item = el('div', 'neta-item');
@@ -423,11 +484,12 @@
 
   function fillForm(bp) {
     TEXT_FIELDS.forEach(function (k) { $('bp-' + k).value = bp[k] || ''; });
-    LIST_FIELDS.forEach(function (k) { $('bp-' + k).value = (bp[k] || []).join('\n'); });
+    (isAvg($('bpChar').value) ? LIST_FIELDS_AVG : LIST_FIELDS).forEach(function (k) { $('bp-' + k).value = (bp[k] || []).join('\n'); });
     clear($('netaList'));
-    (bp.neta_types || []).forEach(addNetaRow);
+    (isAvg($('bpChar').value) ? (bp.step_types || []) : (bp.neta_types || [])).forEach(addNetaRow);
     $('bp-shout-ja').value = (bp.shout_line && bp.shout_line.ja) || '';
     $('bp-shout-en').value = (bp.shout_line && bp.shout_line.en) || '';
+    if (isAvg($('bpChar').value)) { $('bp-item_rules').value = ''; $('bp-shout-ja').value = ''; $('bp-shout-en').value = ''; }
     ['ja', 'en'].forEach(function (lg) {
       ['say', 'instruction', 'why_it_works'].forEach(function (k) {
         var v = bp.length && bp.length[lg] ? bp.length[lg][k] : '';
@@ -441,10 +503,11 @@
   async function loadBlueprint(ref) {
     hideError($('bpErr'));
     show($('bpMsg'), false);
-    var r = await api('/api/blueprint?ref=' + encodeURIComponent(ref));
+    var ch = $('bpChar').value;
+    var r = await api('/api/blueprint' + qs(ch, ref));
     if (!r.ok) { showError($('bpErr'), r.message); return; }
-    editing = { ref: ref, bp: r.data };
-    bpCache[ref] = r.data;
+    editing = { ref: ref, bp: r.data, char: ch };
+    bpCache[cacheKey(ch, ref)] = r.data;
     fillForm(r.data);
   }
 
@@ -459,15 +522,17 @@
       title: $('bp-title').value.trim(), note: $('bp-note').value.trim(),
       persona: $('bp-persona').value.trim(), core_rule: $('bp-core_rule').value.trim()
     };
-    bp.neta_types = Array.prototype.map.call($('netaList').children, function (item) {
+    var avg = isAvg(editing.char || $('bpChar').value);
+    var types = Array.prototype.map.call($('netaList').children, function (item) {
       return {
         id: item.querySelector('.neta-id').value.trim(),
         name: item.querySelector('.neta-name').value.trim(),
         how: item.querySelector('.neta-how').value.trim()
       };
     });
-    LIST_FIELDS.forEach(function (k) { bp[k] = lines('bp-' + k); });
-    bp.shout_line = { ja: $('bp-shout-ja').value.trim(), en: $('bp-shout-en').value.trim() };
+    if (avg) bp.step_types = types; else bp.neta_types = types;
+    (avg ? LIST_FIELDS_AVG : LIST_FIELDS).forEach(function (k) { bp[k] = lines('bp-' + k); });
+    if (!avg) bp.shout_line = { ja: $('bp-shout-ja').value.trim(), en: $('bp-shout-en').value.trim() };
     bp.length = { ja: {}, en: {} };
     ['ja', 'en'].forEach(function (lg) {
       ['say', 'instruction', 'why_it_works'].forEach(function (k) {
@@ -480,7 +545,7 @@
     catch (e) { throw new Error('「上級: お手本の会話」の JSON が読めません。書き方をたしかめてください。'); }
     if (!Array.isArray(ex)) throw new Error('「上級: お手本の会話」は、[ ] で囲んだ一覧で書いてください。');
     bp.examples = ex;
-    if (base.variety) bp.variety = base.variety;
+    if (!avg && base.variety) bp.variety = base.variety;
     if (typeof base.always_action === 'boolean') bp.always_action = base.always_action; // 毎回、答えを出すか(画面では直さない。そのまま引き継ぐ) // 毎回ちがう答えにするための種の一覧(画面では直さない。そのまま引き継ぐ)
     return bp;
   }
@@ -492,24 +557,25 @@
     var bp;
     try { bp = collectForm(); } catch (e) { showError($('bpErr'), e.message); return; }
     $('bpSave').disabled = true;
-    var r = await api('/api/blueprint', { base: editing.ref, blueprint: bp });
+    var ch = editing.char || $('bpChar').value;
+    var r = await api('/api/blueprint', { char: ch, base: editing.ref, blueprint: bp });
     $('bpSave').disabled = false;
     if (!r.ok) { showError($('bpErr'), r.message); return; }
     var newRef = r.data.ref;
-    bpCache[newRef] = r.data.blueprint;
+    bpCache[cacheKey(ch, newRef)] = r.data.blueprint;
     await loadState();
-    var savedItem = (state.blueprints || []).filter(function (b) { return b.ref === newRef; })[0];
+    var savedItem = (charInfo(ch).blueprints || []).filter(function (b) { return b.ref === newRef; })[0];
     $('bpMsg').textContent = (savedItem ? refLabel(savedItem) : newRef) + ' として保存しました。会話タブで選べます。';
     show($('bpMsg'), true);
     $('bpRef').value = newRef;
-    editing = { ref: newRef, bp: r.data.blueprint };
+    editing = { ref: newRef, bp: r.data.blueprint, char: ch };
   }
 
   async function showSystem() {
     hideError($('bpErr'));
     var ref = $('bpRef').value;
     var lang = $('chatLang').value;
-    var r = await api('/api/system?ref=' + encodeURIComponent(ref) + '&lang=' + encodeURIComponent(lang));
+    var r = await api('/api/system' + qs($('bpChar').value, ref, '&lang=' + encodeURIComponent(lang)));
     if (!r.ok) { showError($('bpErr'), r.message); return; }
     $('sysTitle').textContent = '指示文の全文(' + r.data.ref + '・' + (r.data.lang === 'en' ? 'English' : '日本語') + ')';
     $('sysPre').textContent = r.data.system;
@@ -524,7 +590,7 @@
     if (!(days >= 1 && days <= 30)) { showError($('sumErr'), '日数は 1〜30 の数で入れてください。'); return; }
     $('sumMake').disabled = true;
     var r = await api('/api/summary', {
-      days: days, onlyRated: $('sumRated').checked, includeDraft: $('sumDraft').value || null
+      char: $('sumChar').value, days: days, onlyRated: $('sumRated').checked, includeDraft: $('sumDraft').value || null
     });
     $('sumMake').disabled = false;
     if (!r.ok) { showError($('sumErr'), r.message); return; }
@@ -555,6 +621,15 @@
     });
     $('sendBtn').addEventListener('click', send);
     $('newConv').addEventListener('click', newConversation);
+    $('chatChar').addEventListener('change', function () { fillRefSelect($('chatRef'), $('chatChar')); renderChatChar(); });
+    $('bpChar').addEventListener('change', function () {
+      fillRefSelect($('bpRef'), $('bpChar'));
+      renderBpChar();
+      editing = null;
+      show($('sysWrap'), false);
+      loadBlueprint($('bpRef').value);
+    });
+    $('sumChar').addEventListener('change', fillDraftSelect);
     $('bpRef').addEventListener('change', function () { loadBlueprint($('bpRef').value); });
     $('netaAdd').addEventListener('click', function () { addNetaRow(null); });
     $('bpSave').addEventListener('click', saveDraft);

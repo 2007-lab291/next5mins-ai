@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { startLab } from '../lab/server.mjs';
 import { loadOfficial } from '../brain/blueprint.mjs';
+import { loadAverageOfficial } from '../brain/average/blueprint.mjs';
 import { isCrisis } from '../../server/crisis.mjs';
 
 const KEY = 'sk-test-not-a-real-key-0000';
@@ -525,5 +526,172 @@ test('費用の上限: 料金表に無いモデルでは --max-usd を使えな�
     assert.equal(r.status, 200);
     assert.ok(typeof r.json.costUsd === 'number' && r.json.costUsd > 0);
     assert.equal(r.json.totals.usd, r.json.costUsd, '1回目のあと、合計と1回の費用が同じ(2回足していない)');
+  });
+});
+
+// ---------------------------------------------------------------- 平凡(8-7〜8-9)
+const avgBody = (over = {}) => chatBody({ char: 'average', ...over });
+const avgExample = () => loadAverageOfficial('v001').examples.find(e => e.lang === 'ja').turns[0].reply;
+function fakeAvgApi() {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push({ url, init, body });
+    const content = [{ type: 'text', text: JSON.stringify({ ...avgExample(), say: `にせの平凡${calls.length}` }) }];
+    return { ok: true, status: 200, text: JSON.stringify({ content, stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } }) };
+  };
+  return { fetchImpl, calls };
+}
+
+test('平凡: /api/state の chars。前からの blueprints・defaultRef はバカのまま', async () => {
+  await withLab({ dry: true }, async lab => {
+    const s = (await get(lab, '/api/state')).json;
+    assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average']);
+    assert.deepEqual(s.chars.map(c => c.label), ['🤪 バカ', '😐 平凡']);
+    assert.equal(s.chars[0].defaultRef, s.defaultRef);
+    assert.deepEqual(s.chars[0].blueprints, s.blueprints);
+    assert.equal(s.chars[1].defaultRef, 'official:v001');
+    assert.equal(s.chars[1].blueprints[0].ref, 'official:v001');
+  });
+});
+
+test('平凡: 予行の会話。1回目に action があり item キーが無い・char は会話に固定', async () => {
+  await withLab({ dry: true }, async lab => {
+    const a = await post(lab, '/api/chat', avgBody());
+    assert.equal(a.status, 200, a.text);
+    assert.equal(a.json.char, 'average');
+    assert.ok(a.json.reply.action);
+    assert.ok(!('item' in a.json.reply) && !('neta' in a.json.reply));
+    assert.ok(typeof a.json.reply.step === 'string');
+    const b = await post(lab, '/api/chat', chatBody({ conv: a.json.conv, char: 'idiot', text: '続き' }));
+    assert.equal(b.status, 200, b.text);
+    assert.equal(b.json.char, 'average', '続きでは、送られた char は無視');
+    assert.ok(!('item' in b.json.reply));
+    // char を省くとバカ
+    const c = await post(lab, '/api/chat', chatBody());
+    assert.equal(c.json.char, 'idiot');
+    assert.ok(c.json.reply.item);
+    assert.equal(c.json.totals.turns, 3, '合計は2人で1つ');
+  });
+});
+
+test('平凡: つらい入力は AI に送らず step:none。会話の続きは safety の一文つき', async () => {
+  const api = fakeAvgApi();
+  await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async lab => {
+    const a = await post(lab, '/api/chat', avgBody({ text: CRISIS }));
+    assert.equal(a.status, 200, a.text);
+    assert.equal(api.calls.length, 0);
+    assert.equal(a.json.filtered, true);
+    assert.equal(a.json.char, 'average');
+    assert.equal(a.json.reply.mode, 'safety');
+    assert.equal(a.json.reply.step, 'none');
+    assert.equal(a.json.reply.action, null);
+    assert.ok(!('item' in a.json.reply) && !('neta' in a.json.reply));
+    const b = await post(lab, '/api/chat', avgBody({ conv: a.json.conv, text: 'ありがとう' }));
+    assert.equal(b.status, 200, b.text);
+    assert.ok(JSON.stringify(api.calls[0].body.system).includes('hard or painful moment'), 'safety のあとの一文が付く');
+  });
+});
+
+test('平凡: 下書きは average-drafts/ に入り、バカの番号と別', async () => {
+  await withLab({ dry: true }, async (lab, dataDir) => {
+    const idBase = (await get(lab, '/api/blueprint?ref=official:v001')).json;
+    const avBase = await get(lab, '/api/blueprint?char=average&ref=official:v001');
+    assert.equal(avBase.status, 200, avBase.text);
+    assert.ok(avBase.json.step_types, '平凡の設計図');
+    const idSaved = await post(lab, '/api/blueprint', { base: 'official:v001', blueprint: idBase });
+    assert.equal(idSaved.json.ref, 'draft:d001');
+    const mine = structuredClone(avBase.json);
+    mine.title = '平凡の下書き';
+    const s1 = await post(lab, '/api/blueprint', { char: 'average', base: 'official:v001', blueprint: mine });
+    assert.equal(s1.status, 200, s1.text);
+    assert.equal(s1.json.ref, 'draft:d001', '番号はキャラごと');
+    assert.ok(fs.existsSync(path.join(dataDir, 'average-drafts', 'd001.json')));
+    assert.ok(fs.existsSync(path.join(dataDir, 'drafts', 'd001.json')));
+    // バカの設計図を平凡として保存しようとしても断られる
+    const wrong = await post(lab, '/api/blueprint', { char: 'average', base: 'official:v001', blueprint: idBase });
+    assert.equal(wrong.status, 400);
+    const st = (await get(lab, '/api/state')).json;
+    const av = st.chars.find(c => c.key === 'average');
+    assert.deepEqual(av.blueprints.filter(b => b.kind === 'draft').map(b => b.ref), ['draft:d001']);
+    assert.equal(av.blueprints.find(b => b.kind === 'draft').title, '平凡の下書き');
+    assert.equal(st.blueprints.filter(b => b.kind === 'draft').length, 1);
+    assert.equal((await get(lab, '/api/blueprint?char=average&ref=draft:d001')).json.title, '平凡の下書き');
+    assert.notEqual((await get(lab, '/api/blueprint?ref=draft:d001')).json.title, '平凡の下書き');
+    const a = await post(lab, '/api/chat', avgBody({ ref: 'draft:d001' }));
+    assert.equal(a.status, 200, a.text);
+    assert.equal(a.json.ref, 'draft:d001');
+  });
+});
+
+test('平凡: /api/system に step_types がある。バカの指示文とは別', async () => {
+  await withLab({ dry: true }, async lab => {
+    const av = await get(lab, '/api/system?char=average&ref=official:v001&lang=ja');
+    assert.equal(av.status, 200, av.text);
+    assert.ok(av.json.system.includes('step_types'));
+    const id = await get(lab, '/api/system?ref=official:v001&lang=ja');
+    assert.ok(!id.json.system.includes('step_types'));
+  });
+});
+
+test('平凡: まとめは char のキャラの回だけ。記録の行に char', async () => {
+  await withLab({ dry: true }, async (lab, dataDir) => {
+    const a = await post(lab, '/api/chat', avgBody({ text: '平凡への相談' }));
+    const b = await post(lab, '/api/chat', chatBody({ text: 'バカへの相談' }));
+    await post(lab, '/api/rate', { conv: a.json.conv, turn: 0, rating: 'good', memo: '' });
+    await post(lab, '/api/rate', { conv: b.json.conv, turn: 0, rating: 'bad', memo: '' });
+    const sum = async char => (await post(lab, '/api/summary', { ...(char ? { char } : {}), days: 1, onlyRated: false, includeDraft: null })).json.markdown;
+    const av = await sum('average');
+    assert.ok(av.includes('# 平凡のまとめ('));
+    assert.ok(av.includes('平凡への相談') && !av.includes('バカへの相談'));
+    assert.ok(av.includes('平凡: 「') && av.includes('一歩の型: ') && !av.includes('ネタの型'));
+    assert.ok(av.includes('いい 1 / ふつう 0 / だめ 0'));
+    const id = await sum(null);
+    assert.ok(id.includes('# バカ工房のまとめ('));
+    assert.ok(id.includes('バカへの相談') && !id.includes('平凡への相談'));
+    assert.ok(id.includes('いい 0 / ふつう 0 / だめ 1'));
+    const files = fs.readdirSync(path.join(dataDir, 'logs'));
+    const file = path.join(dataDir, 'logs', files[0]);
+    const lines = fs.readFileSync(file, 'utf8').trim().split('\n').map(x => JSON.parse(x));
+    assert.deepEqual(lines.filter(x => x.type === 'turn').map(r => r.char), ['average', 'idiot']);
+    assert.equal(lines.find(x => x.type === 'turn').picks, null);
+    // char の無い前の行は、バカとみなす
+    for (const l of lines) delete l.char;
+    fs.writeFileSync(file, lines.map(l => JSON.stringify(l)).join('\n') + '\n');
+    assert.ok((await sum('average')).includes('(この期間の記録は、まだありません)'));
+    assert.ok((await sum(null)).includes('平凡への相談'), 'char の無い行はバカ');
+  });
+});
+
+test('平凡: おかしい char は 400', async () => {
+  await withLab({ dry: true }, async lab => {
+    const r = await post(lab, '/api/chat', chatBody({ char: 'genius' }));
+    assert.equal(r.status, 400);
+    assert.ok(r.json.message.includes('キャラの指定がおかしいです'));
+    assert.equal((await post(lab, '/api/chat', chatBody({ char: 5 }))).status, 400);
+    assert.equal((await get(lab, '/api/blueprint?char=x&ref=official:v001')).status, 400);
+    assert.equal((await get(lab, '/api/system?char=x&ref=official:v001&lang=ja')).status, 400);
+    assert.equal((await post(lab, '/api/summary', { char: 'x', days: 1, onlyRated: false, includeDraft: null })).status, 400);
+    assert.equal((await post(lab, '/api/blueprint', { char: 'x', base: 'official:v001', blueprint: {} })).status, 400);
+  });
+});
+
+test('平凡: 本物の道は askAverage の schema(step があり item が無い)で送る', async () => {
+  const api = fakeAvgApi();
+  await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async lab => {
+    const a = await post(lab, '/api/chat', avgBody());
+    assert.equal(a.status, 200, a.text);
+    assert.equal(a.json.reply.say, 'にせの平凡1');
+    assert.equal(a.json.char, 'average');
+    const sch = api.calls[0].body.output_config.format.schema;
+    assert.ok(sch.required.includes('step'));
+    assert.ok(!sch.required.includes('item'));
+    assert.ok(!('item' in sch.properties));
+    assert.ok(!JSON.stringify(api.calls[0].body.system).includes('hard or painful moment'), '種も safety の一文も付かない');
+    const b = await post(lab, '/api/chat', avgBody({ conv: a.json.conv, text: '二つ目' }));
+    assert.equal(b.status, 200, b.text);
+    assert.equal(api.calls[1].body.messages.length, 3);
+    assert.equal(b.json.totals.turns, 2);
+    assert.ok(b.json.totals.usd > 0);
   });
 });

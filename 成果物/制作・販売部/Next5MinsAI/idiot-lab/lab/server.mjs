@@ -12,6 +12,10 @@ import net from 'node:net';
 import { createLocalServer, readJson, sendText, urlToFile, rateLimiter, redact, newToken } from './mamori.mjs';
 import { isCrisis, crisisAnswer } from '../../server/crisis.mjs';
 import { refOk, loadOfficial, listOfficial } from '../brain/blueprint.mjs';
+import { loadAverageOfficial, listAverageOfficial } from '../brain/average/blueprint.mjs';
+import { buildAverageSystem, AVERAGE_AFTER_SAFETY_NOTE } from '../brain/average/prompt.mjs';
+import { askAverage } from '../brain/average/call.mjs';
+import { fakeAverage } from '../brain/average/fake.mjs';
 import { buildSystem, buildVariation, AFTER_SAFETY_NOTE } from '../brain/prompt.mjs';
 import { randomInt } from 'node:crypto';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
@@ -82,6 +86,29 @@ function serveStatic(req, res, rawPath) {
   res.end(req.method === 'HEAD' ? undefined : data);
 }
 
+// ---------------------------------------------------------------- キャラごとの頭(8-7)
+// 設計図の一覧・読み込み・指示文・呼び出し・予行・つらい入力の答え・safety のあとの一文を、ここにまとめる
+const CHARS = {
+  idiot: {
+    label: '🤪 バカ',
+    list: listOfficial, load: loadOfficial, system: buildSystem, ask: askIdiot, fake: fakeIdiot,
+    afterSafety: AFTER_SAFETY_NOTE, useVariety: true,
+    crisis: lang => ({ mode: 'safety', language: lang, neta: 'none', say: crisisAnswer(lang).message, action: null, item: null }),
+  },
+  average: {
+    label: '😐 平凡',
+    list: listAverageOfficial, load: loadAverageOfficial, system: buildAverageSystem, ask: askAverage, fake: fakeAverage,
+    afterSafety: AVERAGE_AFTER_SAFETY_NOTE, useVariety: false,
+    crisis: lang => ({ mode: 'safety', language: lang, step: 'none', say: crisisAnswer(lang).message, action: null }),
+  },
+};
+// char を確かめる。省く(null・undefined)とバカ。ほかはだめなら 400
+function checkChar(v) {
+  if (v === undefined || v === null) return 'idiot';
+  if (typeof v !== 'string' || !Object.hasOwn(CHARS, v)) throw bad('キャラの指定がおかしいです(バカか平凡)。');
+  return v;
+}
+
 // ---------------------------------------------------------------- 入力の確かめ
 const KEY_LIKE = '鍵のような文字が入っています。消してから送ってください(鍵は黒い画面にだけ貼ります)。';
 const cpLen = s => Array.from(s).length;
@@ -121,16 +148,17 @@ export async function startLab({
   const thinkLabels = Object.fromEntries(Object.entries(THINK_LEVELS).map(([k, v]) => [k, v.label]));
 
   // ---- 設計図
-  function blueprintList() {
+  function blueprintList(char = 'idiot') {
     return [
-      ...listOfficial().map(b => ({ ...b, kind: 'official' })),
-      ...store.listDrafts(),
+      ...CHARS[char].list().map(b => ({ ...b, kind: 'official' })),
+      ...store.listDrafts(char),
     ];
   }
-  function loadRef(ref) {
+  const defaultRefOf = char => (CHARS[char].list().at(-1) || { ref: 'official:v001' }).ref; // いちばん新しい公式の設計図
+  function loadRef(ref, char = 'idiot') {
     if (!refOk(ref)) throw bad('設計図の指定がおかしいです。');
     try {
-      return ref.startsWith('official:') ? loadOfficial(ref.slice(9)) : store.loadDraft(ref.slice(6));
+      return ref.startsWith('official:') ? CHARS[char].load(ref.slice(9)) : store.loadDraft(ref.slice(6), char);
     } catch (e) {
       throw new LabError(404, 'not_found', String(e?.message || '設計図が見つかりません。'));
     }
@@ -156,15 +184,16 @@ export async function startLab({
   }
 
   function newConv(body) {
+    const char = checkChar(body.char);
     if (!refOk(body.ref)) throw bad('設計図の指定がおかしいです。');
     if (!isLang(body.lang)) throw bad('言語の指定がおかしいです(日本語か English)。');
     if (!isThink(body.think)) throw bad('考える量の指定がおかしいです。');
     let blueprint;
-    try { blueprint = loadRef(body.ref); } catch (e) { throw bad(e.message); } // 約束どおり、ref がおかしければ 400
+    try { blueprint = loadRef(body.ref, char); } catch (e) { throw bad(e.message); } // 約束どおり、ref がおかしければ 400
     // 指示文は、始めるときに作って固定する(あとで設計図のファイルが変わっても、この会話は変えない)
     const conv = {
-      id: newToken(16), ref: body.ref, lang: body.lang, think: body.think, blueprint,
-      system: buildSystem(blueprint, body.lang),
+      id: newToken(16), char, ref: body.ref, lang: body.lang, think: body.think, blueprint,
+      system: CHARS[char].system(blueprint, body.lang),
       messages: [],   // AIとの会話の履歴(足していくだけ)
       turn: 0,        // 次に付ける番号(つらい入力の回も数える)
       last: null,     // いちばん新しいバカの答え(言い直し用)
@@ -179,6 +208,7 @@ export async function startLab({
   async function answer(conv, userText, historyBase, turn) {
     const t0 = nowMs();
     const first = historyBase.length === 0;
+    const C = CHARS[conv.char];
     let filtered = false;
     let reply, problems, usage, thinking, content, tries, picks = null;
     let fail = null;
@@ -187,25 +217,25 @@ export async function startLab({
       // つらい入力は、AIに送らない。履歴にも足さない。
       filtered = true;
       conv.safety = true; // この会話では、もう種(毎回ちがう答えの種)をつけない
-      reply = { mode: 'safety', language: conv.lang, neta: 'none', say: crisisAnswer(conv.lang).message, action: null, item: null };
+      reply = C.crisis(conv.lang);
       problems = []; usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
       thinking = ''; content = null; tries = 0;
     } else {
       const messages = [...historyBase, { role: 'user', content: userText }];
-      picks = conv.safety ? null : pickVariety(conv, first); // 安全モードが出た会話には、種をつけない(安全点検 2026-11-06)
+      picks = conv.safety || !C.useVariety ? null : pickVariety(conv, first); // 安全モードが出た会話には、種をつけない(安全点検 2026-11-06)
       let r;
       if (!dry && maxUsd !== null && totals.usd + (inflight + 1) * WORST_USD > maxUsd) {
         throw new LabError(429, 'over_budget', `起動してからの費用が、上限(約 $${maxUsd})に近づいたので止めました。続けるなら、黒い画面を閉じて、上限を上げて起動し直してください。`, { totals: totalsOut() });
       }
       if (dry) {
-        r = await fakeIdiot({ blueprint: conv.blueprint, lang: conv.lang, text: userText + '​'.repeat(conv.regen), first, turnIndex: historyBase.length / 2 });
+        r = await C.fake({ blueprint: conv.blueprint, lang: conv.lang, text: userText + '​'.repeat(conv.regen), first, turnIndex: historyBase.length / 2 });
       } else {
         inflight += 1;
         try {
-          r = await askIdiot({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, fetchImpl,
+          r = await C.ask({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, fetchImpl,
             // 安全モードが出た会話では、答え(行動カード)を求めず、まじめにする固定の一文を付ける(安全点検 2026-11-06)
             blueprint: conv.safety ? { ...conv.blueprint, always_action: false } : conv.blueprint,
-            variation: conv.safety ? AFTER_SAFETY_NOTE : buildVariation(picks) });
+            variation: conv.safety ? C.afterSafety : (C.useVariety ? buildVariation(picks) : undefined) });
         } finally { inflight -= 1; }
       }
       if (!r.ok) fail = r;
@@ -221,7 +251,7 @@ export async function startLab({
       totals.usd += failCost || 0;
       if (fail.usage && failCost === null) totals.unknown += 1;
       if (fail.usage) {
-        store.appendLog({ type: 'error', at: new Date().toISOString(), conv: conv.id, turn, ref: conv.ref, error: String(fail.error || 'api'), model, usage: fail.usage, costUsd: failCost });
+        store.appendLog({ type: 'error', at: new Date().toISOString(), conv: conv.id, char: conv.char, turn, ref: conv.ref, error: String(fail.error || 'api'), model, usage: fail.usage, costUsd: failCost });
       }
       throw new LabError(502, String(fail.error || 'api'), String(fail.message || 'AIの呼び出しに失敗しました。'),
         { costUsd: failCost, totals: totalsOut() });
@@ -233,13 +263,13 @@ export async function startLab({
     if (cost === null) totals.unknown += 1;
     const ms = nowMs() - t0;
     const entry = {
-      type: 'turn', at: new Date().toISOString(), conv: conv.id, turn, ref: conv.ref, lang: conv.lang, think: conv.think,
+      type: 'turn', at: new Date().toISOString(), conv: conv.id, char: conv.char, turn, ref: conv.ref, lang: conv.lang, think: conv.think,
       model, dry, user: userText, reply, problems, filtered, usage, costUsd: cost, ms, regen: conv.regen, picks,
     };
     store.appendLog(entry);
     conv.last = { text: userText, filtered, turn };
     const out = {
-      conv: conv.id, turn, ref: conv.ref, lang: conv.lang, think: conv.think, model, dry,
+      conv: conv.id, char: conv.char, turn, ref: conv.ref, lang: conv.lang, think: conv.think, model, dry,
       reply, problems, thinking, filtered, usage, costUsd: cost,
       totals: totalsOut(), ms, tries,
     };
@@ -302,22 +332,24 @@ export async function startLab({
 
   async function saveBlueprint(req, res) {
     const body = await readBodyJson(req, DRAFT_LIMIT);
-    loadRef(body.base); // 元の設計図が無ければ 400/404
+    const char = checkChar(body.char);
+    loadRef(body.base, char); // 元の設計図が無ければ 400/404
     if (!body.blueprint || typeof body.blueprint !== 'object' || Array.isArray(body.blueprint)) throw bad('設計図の中身が { } の形ではありません。');
     let bp;
-    try { bp = store.saveDraft(body.blueprint, body.base); }
+    try { bp = store.saveDraft(body.blueprint, body.base, char); }
     catch (e) { throw bad(String(e?.message || '設計図がだめです。')); }
     return sendJson(res, 200, { ref: 'draft:' + bp.version, blueprint: bp });
   }
 
   async function summary(req, res) {
     const body = await readBodyJson(req);
+    const char = checkChar(body.char);
     const days = body.days;
     if (!Number.isInteger(days) || days < 1 || days > 30) throw bad('日数は 1〜30 にしてください。');
     if (typeof body.onlyRated !== 'boolean') throw bad('「評価をつけた回だけ」の指定がおかしいです。');
     let draft = null;
-    if (body.includeDraft !== null && body.includeDraft !== undefined) draft = { ref: body.includeDraft, blueprint: loadRef(body.includeDraft) };
-    const markdown = buildSummary({ entries: store.readLogs(days), days, onlyRated: body.onlyRated, thinkLabels, draft });
+    if (body.includeDraft !== null && body.includeDraft !== undefined) draft = { ref: body.includeDraft, blueprint: loadRef(body.includeDraft, char) };
+    const markdown = buildSummary({ entries: store.readLogs(days), days, onlyRated: body.onlyRated, thinkLabels, draft, char });
     return sendJson(res, 200, { markdown: redact(markdown, { secrets }) });
   }
 
@@ -339,16 +371,18 @@ export async function startLab({
         '/api/state': () => sendJson(res, 200, {
           dry, model, port: listenPort,
           thinkLevels: Object.entries(THINK_LEVELS).map(([k, v]) => ({ key: k, label: v.label })),
-          blueprints: blueprintList(),
-          defaultRef: (listOfficial().at(-1) || { ref: 'official:v001' }).ref, // いちばん新しい公式の設計図
+          blueprints: blueprintList('idiot'),
+          defaultRef: defaultRefOf('idiot'), // バカのもの(前からの画面のため残す)
+          chars: Object.entries(CHARS).map(([key, c]) => ({ key, label: c.label, blueprints: blueprintList(key), defaultRef: defaultRefOf(key) })),
           totals: totalsOut(),
         }),
-        '/api/blueprint': () => sendJson(res, 200, loadRef(url.searchParams.get('ref'))),
+        '/api/blueprint': () => sendJson(res, 200, loadRef(url.searchParams.get('ref'), checkChar(url.searchParams.get('char')))),
         '/api/system': () => {
           const ref = url.searchParams.get('ref');
+          const char = checkChar(url.searchParams.get('char'));
           const lang = url.searchParams.get('lang');
           if (!isLang(lang)) throw bad('言語の指定がおかしいです(日本語か English)。');
-          return sendJson(res, 200, { ref, lang, system: buildSystem(loadRef(ref), lang) });
+          return sendJson(res, 200, { ref, lang, system: CHARS[char].system(loadRef(ref, char), lang) });
         },
       };
       const posts = {

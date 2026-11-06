@@ -2,7 +2,7 @@
 :root {
   --bg: #F8FAFC; --surface: #FFFFFF; --border: #E2E8F0; --input-border: #94A3B8;
   --text: #0F172A; --text-sub: #475569; --chip: #F1F5F9;
-  --idiot: #F59E0B; --idiot-bg: #FEF3C7; --idiot-dark: #78350F;
+  --idiot: #F59E0B; --idiot-bg: #FEF3C7; --idiot-dark: #78350F; --avg: #0EA5E9; --avg-bg: #E0F2FE; --avg-dark: #0C4A6E;
   --blue: #0369A1; --blue-bg: #E0F2FE;
   --error: #B91C1C; --error-bg: #FEF2F2;
   --radius: 12px; --gutter: 16px; --max: 1024px;
@@ -129,3 +129,7 @@ textarea { resize: vertical; }
   .neta-grid { grid-template-columns: 200px 220px 1fr; }
   .bot-row { max-width: 80%; }
 }
+.neta-tag.avg-tag { background: var(--avg-bg); color: var(--avg-dark); border-color: var(--avg); }
+.bot-bubble.avg-bubble { border-left: 4px solid var(--avg); background: var(--avg-bg); }
+.avg-bubble .action-card { border-left-color: var(--avg); }
+.avg-bubble .action-sub { color: var(--avg-dark); }

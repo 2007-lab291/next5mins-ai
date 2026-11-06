@@ -12,27 +12,27 @@ export const refOk = ref => typeof ref === 'string' && REF_RE.test(ref);
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fail = msg => { throw new Error('設計図がだめです: ' + msg); };
 
-function onlyKeys(o, keys, where) {
+export function onlyKeys(o, keys, where) {
   if (!isObj(o)) fail(`${where} は、{ } の形でなければいけません`);
   for (const k of Object.keys(o)) if (!keys.includes(k)) fail(`${where} に、知らないキー「${k}」があります`);
   for (const k of keys) if (!Object.hasOwn(o, k)) fail(`${where} に、キー「${k}」がありません`);
 }
-function text(v, min, max, where) {
+export function text(v, min, max, where) {
   if (typeof v !== 'string') fail(`${where} は、文字でなければいけません`);
   const n = cpLen(v);
   if (min > 0 && v.trim() === '') fail(`${where} が空です`);
   if (n < min || n > max) fail(`${where} の長さは ${min}〜${max} 文字にしてください(いま ${n} 文字)`);
   return v;
 }
-function list(v, min, max, where) {
+export function list(v, min, max, where) {
   if (!Array.isArray(v)) fail(`${where} は、並び([ ])でなければいけません`);
   if (v.length < min || v.length > max) fail(`${where} は ${min}〜${max} 個にしてください(いま ${v.length} 個)`);
   return v;
 }
-function textList(v, max, where) {
+export function textList(v, max, where) {
   return list(v, 0, 30, where).map((s, i) => text(s, 1, max, `${where}[${i}]`));
 }
-function intIn(v, min, max, where) {
+export function intIn(v, min, max, where) {
   if (!Number.isInteger(v)) fail(`${where} は、整数でなければいけません`);
   if (v < min || v > max) fail(`${where} は ${min}〜${max} にしてください(いま ${v})`);
   return v;
@@ -47,7 +47,7 @@ const TOP = ['format', 'version', 'title', 'made', 'based_on', 'note', 'persona'
 // 見えない書式の文字(文字の向きを変える文字・タグ文字など)と、改行・タブ以外の制御文字も断る。
 const LOOKS_LIKE_TAG = /[<>\u2039\u203a\u2329\u232a\u27e8\u27e9\u3008\u3009\ufe64\ufe65]/;
 const HIDDEN = /[\p{Cf}\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
-function noMarkup(v, where) {
+export function noMarkup(v, where) {
   if (typeof v === 'string') {
     const n = v.normalize('NFKC');
     if (LOOKS_LIKE_TAG.test(v) || LOOKS_LIKE_TAG.test(n) || v.includes('```') || n.includes('```')) {

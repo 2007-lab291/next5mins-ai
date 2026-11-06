@@ -153,3 +153,52 @@ for (const width of [1024, 375]) {
     });
   }
 }
+
+test('平凡の通し(キャラ選び・吹き出し・設計図の欄・まとめ)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1024, height: 800 } });
+  const page = await ctx.newPage();
+  const problems = [];
+  page.on('console', (m) => { if (m.type() === 'error') problems.push('console: ' + m.text()); });
+  page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));
+  const bodies = [];
+  page.on('request', (r) => { if (r.method() === 'POST') bodies.push({ url: r.url(), body: r.postData() || '' }); });
+  await page.goto(base);
+  await page.waitForFunction(() => document.getElementById('modeBadge').textContent === '予行');
+  assert.match(await page.locator('#dryBand').textContent(), /にせのAI/);
+  assert.match(await page.locator('.brand-sub').textContent(), /バカと平凡/);
+  const opts = await page.locator('#chatChar option').allTextContents();
+  assert.deepEqual(opts, ['🤪 バカ', '😐 平凡']);
+
+  // 平凡を選んで送る
+  await page.selectOption('#chatChar', 'average');
+  assert.equal(await page.locator('#chatLabel').textContent(), '平凡に相談する');
+  await page.fill('#chatText', 'レポートが進まない。');
+  await page.click('#sendBtn');
+  await page.waitForFunction(() => document.querySelectorAll('.bot-row').length >= 1 && document.getElementById('thinkingRow').hidden, null, { timeout: 10_000 });
+  const bot = page.locator('.bot-row').first();
+  assert.match(await bot.locator('.bot-name').textContent(), /😐 平凡/);
+  assert.equal(await bot.locator('.item-box').count(), 0, '平凡に品物の箱は無い');
+  assert.equal(await bot.locator('.action-card').count(), 1);
+  assert.equal(await page.locator('#chatChar').isDisabled(), true, '会話の途中はキャラを変えられない');
+  const chatReq = bodies.find((b) => b.url.endsWith('/api/chat'));
+  assert.equal(JSON.parse(chatReq.body).char, 'average');
+
+  // 設計図タブ: 平凡では叫ぶ言葉と品物の欄が隠れる
+  await page.click('#tab-bp');
+  await page.selectOption('#bpChar', 'average');
+  await page.waitForFunction(() => /一歩の型/.test(document.getElementById('netaLegend').textContent));
+  assert.equal(await page.locator('#shoutGroup').isVisible(), false);
+  assert.equal(await page.locator('#itemRulesField').isVisible(), false);
+  assert.match(await page.locator('#bpPersonaLabel').textContent(), /平凡の人物像/);
+
+  // まとめでキャラを送る
+  await page.click('#tab-sum');
+  await page.selectOption('#sumChar', 'average');
+  await page.click('#sumMake');
+  await page.waitForFunction(() => !document.getElementById('sumOut').hidden);
+  const sumReq = bodies.find((b) => b.url.endsWith('/api/summary'));
+  assert.equal(JSON.parse(sumReq.body).char, 'average');
+
+  assert.deepEqual(problems, [], problems.join(String.fromCharCode(10)));
+  await ctx.close();
+});

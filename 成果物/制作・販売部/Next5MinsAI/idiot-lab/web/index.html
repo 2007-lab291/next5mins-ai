@@ -11,7 +11,7 @@
   <div class="top-inner">
     <div class="brand">
       <h1 class="brand-title">🤪 バカ工房</h1>
-      <p class="brand-sub">Next5Mins AI のバカを試す所</p>
+      <p class="brand-sub">Next5Mins AI のバカと平凡を試す所</p>
     </div>
     <div class="top-info">
       <span id="modeBadge" class="badge">読み込み中…</span>
@@ -19,7 +19,7 @@
       <span id="totals" class="totals">起動してからの合計: 0回・約 $0.0000(目安)</span>
     </div>
   </div>
-  <div id="dryBand" class="dry-band" hidden>予行: にせのバカが答えています(AIは使っていません)</div>
+  <div id="dryBand" class="dry-band" hidden>予行: にせのAIが答えています(AIは使っていません)</div>
 </header>
 
 <main class="main">
@@ -34,6 +34,10 @@
   <!-- 会話 -->
   <section id="panel-chat" class="panel" role="tabpanel" aria-labelledby="tab-chat">
     <div class="settings">
+      <div class="field">
+        <label for="chatChar">キャラ</label>
+        <select id="chatChar"></select>
+      </div>
       <div class="field">
         <label for="chatRef">設計図</label>
         <select id="chatRef"></select>
@@ -53,18 +57,18 @@
         <button type="button" id="newConv" class="btn btn-sub">新しい会話</button>
       </div>
     </div>
-    <p id="lockNote" class="hint" hidden>会話の途中は、設計図・言語・考える量を変えられません。変えるときは「新しい会話」を押してください。</p>
+    <p id="lockNote" class="hint" hidden>会話の途中は、キャラ・設計図・言語・考える量を変えられません。変えるときは「新しい会話」を押してください。</p>
 
     <div id="log" class="log" aria-live="polite">
       <p id="emptyNote" class="empty-note">まだ会話がありません。下の欄に、いまの状況やお悩みを書いて送ってみましょう。</p>
     </div>
     <div id="thinkingRow" class="thinking-row" hidden>
-      <span class="thinking-text">🤪 バカが考えています<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
+      <span class="thinking-text"><span id="thinkingWho">🤪 バカ</span>が考えています<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
     </div>
     <div id="chatError" class="err-box" role="alert" hidden></div>
 
     <div class="input-area">
-      <label for="chatText" class="input-label">バカに相談する</label>
+      <label for="chatText" id="chatLabel" class="input-label">バカに相談する</label>
       <textarea id="chatText" rows="4" placeholder="例: 明日までのレポートが全然進まない。やる気が出なくて、スマホばかり見てしまう。"></textarea>
       <div class="input-row">
         <span id="charCount" class="char-count">0/400</span>
@@ -82,6 +86,10 @@
       <p>良い下書きができたら、「記録とまとめ」で Claude に渡してください。</p>
     </div>
     <div class="field field-wide">
+      <label for="bpChar">キャラ</label>
+      <select id="bpChar"></select>
+    </div>
+    <div class="field field-wide">
       <label for="bpRef">見る設計図</label>
       <select id="bpRef"></select>
     </div>
@@ -90,11 +98,11 @@
     <form id="bpForm" class="bp-form" autocomplete="off">
       <div class="field"><label for="bp-title">名前(title。60文字まで)</label><input type="text" id="bp-title"></div>
       <div class="field"><label for="bp-note">変えた所のメモ(note)</label><textarea id="bp-note" rows="3"></textarea></div>
-      <div class="field"><label for="bp-persona">バカの人物像(persona)</label><textarea id="bp-persona" rows="6"></textarea></div>
+      <div class="field"><label for="bp-persona" id="bpPersonaLabel">バカの人物像(persona)</label><textarea id="bp-persona" rows="6"></textarea></div>
       <div class="field"><label for="bp-core_rule">いちばん大事な決まり(core_rule)</label><textarea id="bp-core_rule" rows="4"></textarea></div>
 
       <fieldset class="group">
-        <legend>ネタの型(neta_types)</legend>
+        <legend id="netaLegend">ネタの型(neta_types)</legend>
         <div id="netaList" class="neta-list"></div>
         <button type="button" id="netaAdd" class="btn btn-sub">型を足す</button>
       </fieldset>
@@ -102,9 +110,9 @@
       <div class="field"><label for="bp-rules">調子の決まり(rules。1行に1つ)</label><textarea id="bp-rules" rows="6"></textarea></div>
       <div class="field"><label for="bp-banned">やってはいけないこと(banned。1行に1つ)</label><textarea id="bp-banned" rows="6"></textarea></div>
       <div class="field"><label for="bp-conversation_rules">会話の続きの決まり(conversation_rules。1行に1つ)</label><textarea id="bp-conversation_rules" rows="6"></textarea></div>
-      <div class="field"><label for="bp-item_rules">投げる品物の決まり(item_rules。1行に1つ)</label><textarea id="bp-item_rules" rows="6"></textarea></div>
+      <div class="field" id="itemRulesField"><label for="bp-item_rules">投げる品物の決まり(item_rules。1行に1つ)</label><textarea id="bp-item_rules" rows="6"></textarea></div>
 
-      <fieldset class="group">
+      <fieldset class="group" id="shoutGroup">
         <legend>叫ぶ言葉(shout_line)</legend>
         <div class="field"><label for="bp-shout-ja">日本語</label><input type="text" id="bp-shout-ja"></div>
         <div class="field"><label for="bp-shout-en">English</label><input type="text" id="bp-shout-en"></div>
@@ -154,6 +162,10 @@
     </div>
     <div class="settings">
       <div class="field">
+        <label for="sumChar">キャラ</label>
+        <select id="sumChar"></select>
+      </div>
+      <div class="field">
         <label for="sumDays">直近の日数(1〜30)</label>
         <input type="number" id="sumDays" min="1" max="30" value="7">
       </div>
@@ -181,7 +193,7 @@
     <div class="steps">
       <h2 class="sub-h">試行錯誤の手順</h2>
       <ol>
-        <li>「会話」で、いまの状況を書いて、バカに答えさせる。言い返して、会話もできる。</li>
+        <li>「会話」で、いまの状況を書いて、キャラ(バカか平凡)に答えさせる。言い返して、会話もできる。</li>
         <li>答えごとに「いい・ふつう・だめ」を押して、ひとことメモを書く。</li>
         <li>気になったら「設計図」で性格や決まりを直して、下書きとして保存し、新しい会話で試す。</li>
         <li>ここで「まとめを作る」を押し、出てきた文をコピーして、Claude とのチャットに貼る。</li>

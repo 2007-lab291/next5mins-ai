@@ -41,8 +41,13 @@ function readJsonText(s) {
   try { return JSON.parse(t); } catch { return null; }
 }
 
-export async function askIdiot(opts = {}) {
-  const { key, model, system, messages, think, lang, first, blueprint, variation } = opts;
+export function askIdiot(opts = {}) {
+  return askModel({ ...opts, schema: REPLY_SCHEMA, check: checkReply });
+}
+
+// 呼び出しの中身(バカと平凡で共通)。opts.schema は API に渡す形、opts.check は答えの形の確かめ。
+export async function askModel(opts = {}) {
+  const { key, model, system, messages, think, lang, first, blueprint, variation, schema, check } = opts;
   const fetchImpl = opts.fetchImpl || safeFetch;
   const lv = THINK_LEVELS[think];
   const clean = s => redact(String(s ?? ''), { secrets: [key] });
@@ -61,6 +66,7 @@ export async function askIdiot(opts = {}) {
     return out;
   };
   if (!lv) return fail('api', '考える量の指定がおかしいです。');
+  if (!schema || typeof schema !== 'object' || typeof check !== 'function') return fail('api', '答えの形の指定がありません。');
   if (typeof key !== 'string' || !key) return fail('auth', 'APIの鍵がありません。');
 
   let msgs = messages;
@@ -74,7 +80,7 @@ export async function askIdiot(opts = {}) {
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }, ...(typeof variation === 'string' && variation ? [{ type: 'text', text: variation }] : [])],
       messages: msgs,
       thinking: { ...lv.thinking },
-      output_config: { effort: lv.effort, format: { type: 'json_schema', schema: REPLY_SCHEMA } },
+      output_config: { effort: lv.effort, format: { type: 'json_schema', schema } },
     };
     let res;
     try {
@@ -115,7 +121,7 @@ export async function askIdiot(opts = {}) {
     if (content) {
       const textOut = content.filter(b => b?.type === 'text' && typeof b.text === 'string').map(b => b.text).join('');
       const parsed = readJsonText(textOut);
-      if (parsed !== null) checked = checkReply(parsed, { lang, first, blueprint });
+      if (parsed !== null) checked = check(parsed, { lang, first, blueprint });
     }
     // always_action の設計図では、ふつうの答えに必ず行動カード(答え)がいる。無ければ1回だけ頼み直す(社長の指示 2026-11-06「無限に会話が続くよね。毎回答えを出すようにして。そのあと続けていいから」)
     if (checked && blueprint?.always_action && checked.reply.mode === 'normal' && !checked.reply.action && tries < 2) continue;
