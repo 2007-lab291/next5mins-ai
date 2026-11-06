@@ -348,3 +348,14 @@ test('設計図: 全角や似た形のかっこ・見えない文字も使えな
   o.examples[0].turns[0].reply.item.item_emoji = '\u{1F468}‍\u{1F373}';  // 👨‍🍳(ZWJ でつないだ絵文字)
   assert.doesNotThrow(() => checkBlueprint(o));
 });
+
+test('v002(物語で話し続けるバカ)は checkBlueprint を通り、v001 を元にしていて、指示文に長さと続きの物語が入る', () => {
+  const bp = loadOfficial('v002');
+  assert.equal(bp.version, 'v002');
+  assert.equal(bp.based_on, 'official:v001');
+  assert.ok(bp.neta_types.some(n => n.id === 'saga'));
+  assert.ok(bp.examples.some(e => e.lang === 'ja' && e.turns.length >= 3));
+  const sys = buildSystem(bp, 'ja');
+  assert.ok(sys.includes('say: 260文字以内'));
+  assert.ok(sys.indexOf('<safety_rules>') > sys.indexOf('<conversation_rules>')); // 安全の決まりは設計図の後ろに固定のまま
+});

@@ -26,7 +26,7 @@ const MAX_CONVS = 50;      // 覚えておく会話の数
 const MAX_TURNS = 30;      // 1つの会話の回数
 const BODY_LIMIT = 20_000; // 送られる JSON の大きさ(バイト)
 const DRAFT_LIMIT = 120_000;
-const WORST_USD = 0.03;   // 1回の送信で、かかりうる最大の目安(ドル)。--max-usd の判定に使う
+const WORST_USD = 0.04;   // 1回の送信で、かかりうる最大の目安(ドル)。--max-usd の判定に使う(2026-11-06 費用点検で 0.03→0.04。理屈の上の最悪 約0.032)
 
 // ---------------------------------------------------------------- 失敗(状態の番号・コード・日本語の文)
 class LabError extends Error {
@@ -321,7 +321,7 @@ export async function startLab({
           dry, model, port: listenPort,
           thinkLevels: Object.entries(THINK_LEVELS).map(([k, v]) => ({ key: k, label: v.label })),
           blueprints: blueprintList(),
-          defaultRef: 'official:v001',
+          defaultRef: (listOfficial().at(-1) || { ref: 'official:v001' }).ref, // いちばん新しい公式の設計図
           totals: totalsOut(),
         }),
         '/api/blueprint': () => sendJson(res, 200, loadRef(url.searchParams.get('ref'))),
