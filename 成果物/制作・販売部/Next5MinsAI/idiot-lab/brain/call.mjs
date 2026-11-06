@@ -134,6 +134,6 @@ export async function askIdiot(opts = {}) {
       if (stripped) out.strippedThinking = true;
       return out;
     }
-    if (tries >= 2) return fail('bad_shape', 'AIの答えの形がおかしく、2回続けてやり直しても直りませんでした。');
+    if (tries >= 2) return fail('bad_shape', 'AIの答えの形がおかしく、2回試しても直りませんでした。');
   }
 }

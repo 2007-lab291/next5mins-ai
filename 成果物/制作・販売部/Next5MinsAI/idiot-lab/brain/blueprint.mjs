@@ -85,14 +85,20 @@ export function checkBlueprint(obj) {
   };
 
   const seen = new Set();
-  bp.neta_types = list(obj.neta_types, 1, 12, 'neta_types').map((n, i) => {
+  bp.neta_types = list(obj.neta_types, 1, 60, 'neta_types').map((n, i) => {
     const w = `neta_types[${i}]`;
     onlyKeys(n, ['id', 'name', 'how'], w);
     if (typeof n.id !== 'string' || !/^[a-z][a-z0-9_]{1,30}$/.test(n.id)) fail(`${w}.id は、英小文字で始まる英小文字・数字・_ の 2〜31 文字にしてください`);
     if (seen.has(n.id)) fail(`${w}.id「${n.id}」が、ほかと重なっています`);
     seen.add(n.id);
-    return { id: n.id, name: text(n.name, 1, 30, `${w}.name`), how: text(n.how, 1, 600, `${w}.how`) };
+    const name = text(n.name, 1, 30, `${w}.name`);
+    const how = text(n.how, 1, 600, `${w}.how`);
+    // 指示文にそのまま入るので、1行だけ・< > なし(偽の区切りを書けないように。安全点検 2026-11-06)
+    for (const [t, k] of [[name, 'name'], [how, 'how']]) if (/[\r\n\t\u0085\u2028\u2029<>]/.test(t)) fail(`${w}.${k} は1行で書いてください(改行・タブ・< > は使えません)`);
+    return { id: n.id, name, how };
   });
+  const howTotal = bp.neta_types.reduce((s, n) => s + cpLen(n.how), 0);
+  if (howTotal > 12000) fail(`neta_types の how の合計は 12000 文字までにしてください(いま ${howTotal} 文字)`);
 
   bp.rules = textList(obj.rules, 400, 'rules');
   bp.banned = textList(obj.banned, 400, 'banned');

@@ -81,7 +81,7 @@ test('予行: /api/state と、会話の1回目・2回目', async () => {
     assert.equal(s.json.dry, true);
     assert.equal(s.json.port, lab.port);
     assert.deepEqual(s.json.thinkLevels.map(x => x.key), ['none', 'low', 'medium', 'high']);
-    assert.equal(s.json.defaultRef, 'official:v005'); // いちばん新しい公式の設計図
+    assert.equal(s.json.defaultRef, 'official:v006'); // いちばん新しい公式の設計図
     assert.equal(s.json.blueprints[0].ref, 'official:v001');
     assert.equal(s.json.blueprints[0].kind, 'official');
     assert.deepEqual(s.json.totals, { turns: 0, usd: 0, unknown: 0 });
