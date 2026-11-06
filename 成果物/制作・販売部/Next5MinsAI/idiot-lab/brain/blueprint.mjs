@@ -38,6 +38,7 @@ function intIn(v, min, max, where) {
   return v;
 }
 
+export const VARIETY_KEYS = ['stages', 'characters', 'styles'];
 const TOP = ['format', 'version', 'title', 'made', 'based_on', 'note', 'persona', 'core_rule', 'neta_types',
   'rules', 'banned', 'conversation_rules', 'item_rules', 'shout_line', 'length', 'language_notes', 'examples'];
 
@@ -60,7 +61,9 @@ function noMarkup(v, where) {
 export function checkBlueprint(obj) {
   if (!isObj(obj)) fail('全体が { } の形ではありません');
   if (Buffer.byteLength(JSON.stringify(obj), 'utf8') > 100 * 1024) fail('ファイルが大きすぎます(100KB まで)');
-  onlyKeys(obj, TOP, '設計図');
+  // variety(毎回ちがう答えにするための種の一覧)は、無くてもよい。あれば下で検査する(2026-11-06。社長の指示「毎回違うことを言ってきたほうがいいからバリエーションを増やして」)
+  const { variety: _variety, ...withoutVariety } = obj;
+  onlyKeys(withoutVariety, TOP, '設計図');
   noMarkup(obj, '設計図');
   if (obj.format !== 'next5mins-idiot-blueprint/1') fail('format は "next5mins-idiot-blueprint/1" にしてください');
   if (typeof obj.version !== 'string' || !/^[vd]\d{3}$/.test(obj.version)) fail('version は v001 や d001 の形にしてください');
@@ -115,6 +118,16 @@ export function checkBlueprint(obj) {
     ja: text(obj.language_notes.ja, 0, 1000, 'language_notes.ja'),
     en: text(obj.language_notes.en, 0, 1000, 'language_notes.en'),
   };
+
+  if (Object.hasOwn(obj, 'variety')) {
+    onlyKeys(obj.variety, VARIETY_KEYS, 'variety');
+    bp.variety = {};
+    for (const k of VARIETY_KEYS) bp.variety[k] = list(obj.variety[k], 0, 80, `variety.${k}`).map((s, i) => {
+      const t = text(s, 1, 120, `variety.${k}[${i}]`);
+      if (/[\r\n\t\u0085\u2028\u2029]/.test(t)) fail(`variety.${k}[${i}] は1行で書いてください(改行・タブは使えません)`);
+      return t;
+    });
+  }
 
   bp.examples = list(obj.examples, 0, 12, 'examples').map((ex, i) => {
     const w = `examples[${i}]`;

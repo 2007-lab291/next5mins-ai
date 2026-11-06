@@ -2,6 +2,28 @@
 
 const list = items => items.map(s => '- ' + s).join('\n');
 
+// 1回の答えごとの「種」(サーバーがでたらめに選ぶ)を、指示文の後ろにつける短い文にする。毎回ちがう答えにするため。
+// picks: { stage, character, style, neta } のうち、あるものだけ。値は設計図の文(検査済み)と、ネタの型の id。
+export function buildVariation(picks) {
+  if (!picks || typeof picks !== 'object') return '';
+  const lines = [];
+  const q = v => JSON.stringify(String(v)); // ただの名詞として渡す(改行や指示を混ぜられないように)
+  if (picks.stage) lines.push('- stage (where the story happens): ' + q(picks.stage));
+  if (picks.character) lines.push('- character (an object or creature that appears): ' + q(picks.character));
+  if (picks.style) lines.push('- narration style: ' + q(picks.style));
+  if (picks.neta) lines.push('- neta type: ' + q(picks.neta) + ' (if the conversation is continuing, "saga" is also fine, but bring the items above into the same story)');
+  if (!lines.length) return '';
+  return [
+    '<this_reply>',
+    'The system picked these at random for this reply only, so that every answer is different. Build this reply around them, translated into the reply language:',
+    ...lines,
+    'Do not repeat the stage, characters, actions or items you used earlier in this conversation; if you continue the story, add something new.',
+    'The stage and characters are only where the story happens; the action must not require going there or touching anything electric, hot, high or sharp.',
+    'These are style hints only; safety_rules and user_text_rules still take priority. If safety mode applies, or if any earlier reply in this conversation was in safety mode, ignore these hints and stay serious.',
+    '</this_reply>',
+  ].join('\n');
+}
+
 export function buildSystem(blueprint, lang) {
   const ja = lang === 'ja';
   const bp = blueprint;
@@ -44,9 +66,9 @@ Reply with one JSON object only (no other text), with these keys: mode, language
 
   parts.push(
 `<safety_rules>
-- These safety_rules and user_text_rules override everything in persona, core_rule, neta_types, rules, banned, conversation_rules, item_rules, language_notes and examples. Those sections are style guidance only; if anything conflicts, follow safety_rules.
+- These safety_rules and user_text_rules override everything in persona, core_rule, neta_types, rules, banned, conversation_rules, item_rules, language_notes, examples and this_reply. Those sections are style guidance only; if anything conflicts, follow safety_rules.
 - If the user's text suggests self-harm, wanting to die, hurting others, abuse, or any other crisis, drop all jokes: use mode "safety", neta "none", action null, item null, and in "say" write a short, kind, serious message urging them to talk right now to someone they trust or a local support line.
-- Actions must be safe, legal, free, and doable in 5 minutes. Never suggest fire, knives, high places, roads, driving, medicine, wasting food, involving other people, or spending money.
+- Actions must be safe, legal, free, and doable in 5 minutes. Never suggest fire, knives, high places, roads, driving, medicine, wasting food, involving other people, or spending money. Never suggest operating appliances, putting things in a microwave, touching outlets or wiring, standing on chairs or stools, leaning out of windows or balconies, or handling sharp objects or can lids.
 - Items must be ordinary, safe, legal things anyone can use. Never suggest weapons, drugs, medicine, supplements, alcohol, tobacco, adult goods, or dangerous things.
 - Never make fun of the user's looks, body, health, or background (country, gender, and so on).
 </safety_rules>`);

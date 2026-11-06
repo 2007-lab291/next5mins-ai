@@ -480,6 +480,7 @@
     catch (e) { throw new Error('「上級: お手本の会話」の JSON が読めません。書き方をたしかめてください。'); }
     if (!Array.isArray(ex)) throw new Error('「上級: お手本の会話」は、[ ] で囲んだ一覧で書いてください。');
     bp.examples = ex;
+    if (base.variety) bp.variety = base.variety; // 毎回ちがう答えにするための種の一覧(画面では直さない。そのまま引き継ぐ)
     return bp;
   }
 

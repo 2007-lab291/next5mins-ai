@@ -12,7 +12,8 @@ import net from 'node:net';
 import { createLocalServer, readJson, sendText, urlToFile, rateLimiter, redact, newToken } from './mamori.mjs';
 import { isCrisis, crisisAnswer } from '../../server/crisis.mjs';
 import { refOk, loadOfficial, listOfficial } from '../brain/blueprint.mjs';
-import { buildSystem } from '../brain/prompt.mjs';
+import { buildSystem, buildVariation } from '../brain/prompt.mjs';
+import { randomInt } from 'node:crypto';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
 import { fakeIdiot } from '../brain/fake.mjs';
 import { createStore, defaultDataDir, redactDeep, buildSummary } from './store.mjs';
@@ -143,6 +144,17 @@ export async function startLab({
     touch(c);
     return c;
   }
+  // 1回ごとの種を、設計図の variety とネタの型から、でたらめに選ぶ(前の回と同じネタの型は避ける)
+  function pickVariety(conv, first) {
+    const v = conv.blueprint.variety;
+    const one = a => (Array.isArray(a) && a.length ? a[randomInt(a.length)] : null);
+    const ids = conv.blueprint.neta_types.map(n => n.id).filter(id => id !== conv.lastNeta && !(first && id === 'saga')); // 1回目に「続きの物語」は選ばない
+    const p = { stage: one(v?.stages), character: one(v?.characters), style: one(v?.styles), neta: one(ids) };
+    if (!v) { p.stage = null; p.character = null; p.style = null; }
+    conv.lastNeta = p.neta;
+    return p;
+  }
+
   function newConv(body) {
     if (!refOk(body.ref)) throw bad('設計図の指定がおかしいです。');
     if (!isLang(body.lang)) throw bad('言語の指定がおかしいです(日本語か English)。');
@@ -168,17 +180,19 @@ export async function startLab({
     const t0 = nowMs();
     const first = historyBase.length === 0;
     let filtered = false;
-    let reply, problems, usage, thinking, content, tries;
+    let reply, problems, usage, thinking, content, tries, picks = null;
     let fail = null;
 
     if (isCrisis(userText)) {
       // つらい入力は、AIに送らない。履歴にも足さない。
       filtered = true;
+      conv.safety = true; // この会話では、もう種(毎回ちがう答えの種)をつけない
       reply = { mode: 'safety', language: conv.lang, neta: 'none', say: crisisAnswer(conv.lang).message, action: null, item: null };
       problems = []; usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
       thinking = ''; content = null; tries = 0;
     } else {
       const messages = [...historyBase, { role: 'user', content: userText }];
+      picks = conv.safety ? null : pickVariety(conv, first); // 安全モードが出た会話には、種をつけない(安全点検 2026-11-06)
       let r;
       if (!dry && maxUsd !== null && totals.usd + (inflight + 1) * WORST_USD > maxUsd) {
         throw new LabError(429, 'over_budget', `起動してからの費用が、上限(約 $${maxUsd})に近づいたので止めました。続けるなら、黒い画面を閉じて、上限を上げて起動し直してください。`, { totals: totalsOut() });
@@ -188,13 +202,14 @@ export async function startLab({
       } else {
         inflight += 1;
         try {
-          r = await askIdiot({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, blueprint: conv.blueprint, fetchImpl });
+          r = await askIdiot({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, blueprint: conv.blueprint, fetchImpl, variation: buildVariation(picks) });
         } finally { inflight -= 1; }
       }
       if (!r.ok) fail = r;
       else ({ reply, problems, usage, thinking, content, tries } = r);
       if (!fail) {
         conv.messages = [...messages, { role: 'assistant', content }];
+        if (reply && reply.mode === 'safety') conv.safety = true;
       }
     }
     if (fail) {
@@ -216,7 +231,7 @@ export async function startLab({
     const ms = nowMs() - t0;
     const entry = {
       type: 'turn', at: new Date().toISOString(), conv: conv.id, turn, ref: conv.ref, lang: conv.lang, think: conv.think,
-      model, dry, user: userText, reply, problems, filtered, usage, costUsd: cost, ms, regen: conv.regen,
+      model, dry, user: userText, reply, problems, filtered, usage, costUsd: cost, ms, regen: conv.regen, picks,
     };
     store.appendLog(entry);
     conv.last = { text: userText, filtered, turn };

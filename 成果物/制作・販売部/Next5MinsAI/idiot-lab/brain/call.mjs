@@ -42,7 +42,7 @@ function readJsonText(s) {
 }
 
 export async function askIdiot(opts = {}) {
-  const { key, model, system, messages, think, lang, first, blueprint } = opts;
+  const { key, model, system, messages, think, lang, first, blueprint, variation } = opts;
   const fetchImpl = opts.fetchImpl || safeFetch;
   const lv = THINK_LEVELS[think];
   const clean = s => redact(String(s ?? ''), { secrets: [key] });
@@ -71,7 +71,7 @@ export async function askIdiot(opts = {}) {
     const body = {
       model,
       max_tokens: 4096,
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }, ...(typeof variation === 'string' && variation ? [{ type: 'text', text: variation }] : [])],
       messages: msgs,
       thinking: { ...lv.thinking },
       output_config: { effort: lv.effort, format: { type: 'json_schema', schema: REPLY_SCHEMA } },
