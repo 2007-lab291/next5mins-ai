@@ -22,6 +22,7 @@
 | `parts/part5-share-footer/` | パーツ5 共有とフッター |
 | `server/` | AIの窓口(サーバー)。`--dry` はにせの答え。`crisis.mjs` はつらい入力の絞り込み。`mamori.mjs` は `守りの部品/js/` の写し |
 | `tests/` | 自動テスト(`node --test tests/server.test.mjs`・`node --test tests/site.test.mjs`) |
+| `idiot-lab/` | **バカ工房**: バカだけを取り出して、会話しながら試して育てる道具(2026-11-06。入口は `idiot-lab/README.md`)。サイトのパーツとは別の道具で、パーツには差しこまない |
 
 各パーツのフォルダには、`partN.html`(そのパーツだけを1つで見る予行の画面)があります。ブラウザで直接開けます(サーバーなし)。
 

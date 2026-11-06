@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>バカ工房</title>
+<link rel="stylesheet" href="/web/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1 class="brand-title">🤪 バカ工房</h1>
+      <p class="brand-sub">Next5Mins AI のバカを試す所</p>
+    </div>
+    <div class="top-info">
+      <span id="modeBadge" class="badge">読み込み中…</span>
+      <span id="modelName" class="model-name"></span>
+      <span id="totals" class="totals">起動してからの合計: 0回・約 $0.0000(目安)</span>
+    </div>
+  </div>
+  <div id="dryBand" class="dry-band" hidden>予行: にせのバカが答えています(AIは使っていません)</div>
+</header>
+
+<main class="main">
+  <div id="loadError" class="err-box" role="alert" hidden></div>
+
+  <div class="tabs" role="tablist" aria-label="画面の切り替え">
+    <button type="button" class="tab is-active" id="tab-chat" role="tab" aria-selected="true" aria-controls="panel-chat" data-tab="chat">会話</button>
+    <button type="button" class="tab" id="tab-bp" role="tab" aria-selected="false" aria-controls="panel-bp" data-tab="bp">設計図</button>
+    <button type="button" class="tab" id="tab-sum" role="tab" aria-selected="false" aria-controls="panel-sum" data-tab="sum">記録とまとめ</button>
+  </div>
+
+  <!-- 会話 -->
+  <section id="panel-chat" class="panel" role="tabpanel" aria-labelledby="tab-chat">
+    <div class="settings">
+      <div class="field">
+        <label for="chatRef">設計図</label>
+        <select id="chatRef"></select>
+      </div>
+      <div class="field">
+        <label for="chatLang">言語</label>
+        <select id="chatLang">
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="chatThink">考える量</label>
+        <select id="chatThink"></select>
+      </div>
+      <div class="field field-btn">
+        <button type="button" id="newConv" class="btn btn-sub">新しい会話</button>
+      </div>
+    </div>
+    <p id="lockNote" class="hint" hidden>会話の途中は、設計図・言語・考える量を変えられません。変えるときは「新しい会話」を押してください。</p>
+
+    <div id="log" class="log" aria-live="polite">
+      <p id="emptyNote" class="empty-note">まだ会話がありません。下の欄に、いまの状況やお悩みを書いて送ってみましょう。</p>
+    </div>
+    <div id="thinkingRow" class="thinking-row" hidden>
+      <span class="thinking-text">🤪 バカが考えています<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
+    </div>
+    <div id="chatError" class="err-box" role="alert" hidden></div>
+
+    <div class="input-area">
+      <label for="chatText" class="input-label">バカに相談する</label>
+      <textarea id="chatText" rows="4" placeholder="例: 明日までのレポートが全然進まない。やる気が出なくて、スマホばかり見てしまう。"></textarea>
+      <div class="input-row">
+        <span id="charCount" class="char-count">0/400</span>
+        <span class="key-hint">送る: Ctrl+Enter(Mac は Cmd+Enter)。Enter は改行です。</span>
+        <button type="button" id="sendBtn" class="btn btn-main">送る</button>
+      </div>
+      <p class="notice">ここに書いた文は、本物のAIのときは Anthropic に送られます。名前・住所など、個人のことは書かないでください。</p>
+    </div>
+  </section>
+
+  <!-- 設計図 -->
+  <section id="panel-bp" class="panel" role="tabpanel" aria-labelledby="tab-bp" hidden>
+    <div class="explain">
+      <p>公式の設計図(v001…)は Claude が作ります。ここで保存すると、このPCの中だけの下書き(d001…)になります。</p>
+      <p>良い下書きができたら、「記録とまとめ」で Claude に渡してください。</p>
+    </div>
+    <div class="field field-wide">
+      <label for="bpRef">見る設計図</label>
+      <select id="bpRef"></select>
+    </div>
+    <div id="bpMsg" class="msg" role="status" hidden></div>
+
+    <form id="bpForm" class="bp-form" autocomplete="off">
+      <div class="field"><label for="bp-title">名前(title。60文字まで)</label><input type="text" id="bp-title"></div>
+      <div class="field"><label for="bp-note">変えた所のメモ(note)</label><textarea id="bp-note" rows="3"></textarea></div>
+      <div class="field"><label for="bp-persona">バカの人物像(persona)</label><textarea id="bp-persona" rows="6"></textarea></div>
+      <div class="field"><label for="bp-core_rule">いちばん大事な決まり(core_rule)</label><textarea id="bp-core_rule" rows="4"></textarea></div>
+
+      <fieldset class="group">
+        <legend>ネタの型(neta_types)</legend>
+        <div id="netaList" class="neta-list"></div>
+        <button type="button" id="netaAdd" class="btn btn-sub">型を足す</button>
+      </fieldset>
+
+      <div class="field"><label for="bp-rules">調子の決まり(rules。1行に1つ)</label><textarea id="bp-rules" rows="6"></textarea></div>
+      <div class="field"><label for="bp-banned">やってはいけないこと(banned。1行に1つ)</label><textarea id="bp-banned" rows="6"></textarea></div>
+      <div class="field"><label for="bp-conversation_rules">会話の続きの決まり(conversation_rules。1行に1つ)</label><textarea id="bp-conversation_rules" rows="6"></textarea></div>
+      <div class="field"><label for="bp-item_rules">投げる品物の決まり(item_rules。1行に1つ)</label><textarea id="bp-item_rules" rows="6"></textarea></div>
+
+      <fieldset class="group">
+        <legend>叫ぶ言葉(shout_line)</legend>
+        <div class="field"><label for="bp-shout-ja">日本語</label><input type="text" id="bp-shout-ja"></div>
+        <div class="field"><label for="bp-shout-en">English</label><input type="text" id="bp-shout-en"></div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>長さの上限(length。日本語は文字数 10〜400、English は語数 5〜120)</legend>
+        <div class="len-grid">
+          <div class="field"><label for="bp-len-ja-say">日本語: せりふの長さ(say)</label><input type="number" id="bp-len-ja-say" min="10" max="400"></div>
+          <div class="field"><label for="bp-len-ja-instruction">日本語: やることの長さ(instruction)</label><input type="number" id="bp-len-ja-instruction" min="10" max="400"></div>
+          <div class="field"><label for="bp-len-ja-why_it_works">日本語: なぜ効くかの長さ(why_it_works)</label><input type="number" id="bp-len-ja-why_it_works" min="10" max="400"></div>
+          <div class="field"><label for="bp-len-en-say">English: せりふの長さ(say)</label><input type="number" id="bp-len-en-say" min="5" max="120"></div>
+          <div class="field"><label for="bp-len-en-instruction">English: やることの長さ(instruction)</label><input type="number" id="bp-len-en-instruction" min="5" max="120"></div>
+          <div class="field"><label for="bp-len-en-why_it_works">English: なぜ効くかの長さ(why_it_works)</label><input type="number" id="bp-len-en-why_it_works" min="5" max="120"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>言い回しの注意(language_notes)</legend>
+        <div class="field"><label for="bp-ln-ja">日本語</label><textarea id="bp-ln-ja" rows="3"></textarea></div>
+        <div class="field"><label for="bp-ln-en">English</label><textarea id="bp-ln-en" rows="3"></textarea></div>
+      </fieldset>
+
+      <details class="group adv">
+        <summary>上級: お手本の会話(examples)</summary>
+        <p class="hint">JSON で書きます。形は CONTRACT の1章のとおり。分からなければ、さわらないでください。</p>
+        <div class="field"><label for="bp-examples">お手本の会話(examples。JSON)</label><textarea id="bp-examples" rows="12" class="mono" spellcheck="false"></textarea></div>
+      </details>
+
+      <div class="btn-row">
+        <button type="button" id="bpSave" class="btn btn-main">下書きとして保存</button>
+        <button type="button" id="bpSystem" class="btn btn-sub">指示文の全文を見る</button>
+      </div>
+    </form>
+    <div id="bpErr" class="err-box" role="alert" hidden></div>
+    <div id="sysWrap" hidden>
+      <h2 class="sub-h" id="sysTitle">指示文の全文</h2>
+      <pre id="sysPre" class="sys-pre" tabindex="0"></pre>
+    </div>
+  </section>
+
+  <!-- 記録とまとめ -->
+  <section id="panel-sum" class="panel" role="tabpanel" aria-labelledby="tab-sum" hidden>
+    <div class="explain">
+      <p>会話の記録から、Claude に渡すまとめを作ります。</p>
+      <p class="warn-line">公開のリポジトリ(GitHub の公開の置き場)には貼らないでください(Claude とのチャットに貼るだけ)。</p>
+    </div>
+    <div class="settings">
+      <div class="field">
+        <label for="sumDays">直近の日数(1〜30)</label>
+        <input type="number" id="sumDays" min="1" max="30" value="7">
+      </div>
+      <div class="field field-check">
+        <label class="check"><input type="checkbox" id="sumRated" checked> 評価をつけた回だけ</label>
+      </div>
+      <div class="field">
+        <label for="sumDraft">下書きの設計図も入れる</label>
+        <select id="sumDraft"></select>
+      </div>
+      <div class="field field-btn">
+        <button type="button" id="sumMake" class="btn btn-main">まとめを作る</button>
+      </div>
+    </div>
+    <div id="sumErr" class="err-box" role="alert" hidden></div>
+    <div id="sumOut" hidden>
+      <label for="sumText" class="input-label">できたまとめ(読むだけ)</label>
+      <textarea id="sumText" rows="16" readonly class="mono"></textarea>
+      <div class="btn-row">
+        <button type="button" id="sumCopy" class="btn btn-sub">コピー</button>
+        <span id="sumCopyMsg" class="msg-inline" role="status"></span>
+      </div>
+    </div>
+
+    <div class="steps">
+      <h2 class="sub-h">試行錯誤の手順</h2>
+      <ol>
+        <li>「会話」で、いまの状況を書いて、バカに答えさせる。言い返して、会話もできる。</li>
+        <li>答えごとに「いい・ふつう・だめ」を押して、ひとことメモを書く。</li>
+        <li>気になったら「設計図」で性格や決まりを直して、下書きとして保存し、新しい会話で試す。</li>
+        <li>ここで「まとめを作る」を押し、出てきた文をコピーして、Claude とのチャットに貼る。</li>
+        <li>Claude が、まとめをもとに、新しい公式の設計図を作る。</li>
+        <li>PC の Claude Code で <code>/とる</code> と打つと(取り込みの合図です)、新しい設計図が取り込まれる。そのあと、また 1 から試す。</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<script src="/web/app.js"></script>
+</body>
+</html>

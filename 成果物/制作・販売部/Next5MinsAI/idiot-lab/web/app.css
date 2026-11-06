@@ -1,0 +1,131 @@
+/* バカ工房の見た目。白が基本、バカの色は黄。文字は濃い色。 */
+:root {
+  --bg: #F8FAFC; --surface: #FFFFFF; --border: #E2E8F0; --input-border: #94A3B8;
+  --text: #0F172A; --text-sub: #475569; --chip: #F1F5F9;
+  --idiot: #F59E0B; --idiot-bg: #FEF3C7; --idiot-dark: #78350F;
+  --blue: #0369A1; --blue-bg: #E0F2FE;
+  --error: #B91C1C; --error-bg: #FEF2F2;
+  --radius: 12px; --gutter: 16px; --max: 1024px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.6; overflow-x: hidden; }
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; color: var(--text); }
+code { background: var(--chip); padding: 1px 6px; border-radius: 6px; }
+
+.top { background: var(--surface); border-bottom: 1px solid var(--border); }
+.top-inner { max-width: var(--max); margin: 0 auto; padding: 12px var(--gutter); display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; justify-content: space-between; }
+.brand-title { margin: 0; font-size: 1.4rem; line-height: 1.3; }
+.brand-sub { margin: 0; font-size: 0.8rem; color: var(--text-sub); }
+.top-info { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.85rem; min-width: 0; }
+.badge { padding: 2px 10px; border-radius: 999px; background: var(--idiot-bg); color: var(--idiot-dark); font-weight: 700; border: 1px solid var(--idiot); }
+.model-name { color: var(--text-sub); overflow-wrap: anywhere; }
+.totals { color: var(--text); overflow-wrap: anywhere; }
+.dry-band { background: var(--idiot); color: #1C1917; font-weight: 700; text-align: center; padding: 8px var(--gutter); overflow-wrap: anywhere; }
+
+.main { max-width: var(--max); margin: 0 auto; padding: 16px var(--gutter) 48px; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+.tab { flex: 1 1 0; padding: 10px 8px; background: transparent; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: 700; color: var(--text-sub); cursor: pointer; border-radius: 8px 8px 0 0; }
+.tab.is-active { color: var(--text); border-bottom-color: var(--idiot); background: var(--idiot-bg); }
+.tab:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, pre:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+.settings { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-bottom: 12px; }
+.settings .field { margin-bottom: 0; }
+.field-wide { max-width: 480px; }
+.field label, .input-label { font-weight: 700; font-size: 0.9rem; }
+.field-check { justify-content: flex-end; padding-bottom: 8px; }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 700; }
+input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--input-border); border-radius: 8px; background: var(--surface); }
+select:disabled, button:disabled, input:disabled { background: #E2E8F0; color: #64748B; cursor: not-allowed; }
+.settings select { min-width: 150px; }
+.settings input[type="number"] { width: 110px; }
+textarea { resize: vertical; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85rem; }
+
+.btn { padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--input-border); background: var(--surface); font-weight: 700; cursor: pointer; }
+.btn-main { background: var(--idiot); border-color: #B45309; color: #1C1917; }
+.btn-sub { background: var(--surface); color: var(--text); }
+.btn-small { padding: 4px 12px; font-size: 0.85rem; }
+.btn-main:disabled { background: #E2E8F0; border-color: #CBD5E1; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+
+.hint { margin: 4px 0 12px; font-size: 0.85rem; color: var(--text-sub); }
+.explain { background: var(--blue-bg); border-radius: var(--radius); padding: 8px 14px; margin-bottom: 16px; }
+.explain p { margin: 4px 0; }
+.warn-line { font-weight: 700; color: var(--error); }
+.err-box { margin: 12px 0; padding: 10px 14px; border: 1px solid var(--error); background: var(--error-bg); color: var(--error); border-radius: var(--radius); font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+.msg { margin: 8px 0 12px; padding: 10px 14px; border: 1px solid #15803D; background: #F0FDF4; color: #14532D; border-radius: var(--radius); font-weight: 700; overflow-wrap: anywhere; }
+.msg-inline { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+
+/* 会話 */
+.log { display: flex; flex-direction: column; gap: 16px; padding: 8px 0; min-height: 120px; }
+.empty-note { color: var(--text-sub); text-align: center; margin: 24px 0; }
+.user-row { display: flex; justify-content: flex-end; }
+.user-bubble { max-width: 85%; background: var(--blue-bg); border: 1px solid #7DD3FC; border-radius: 16px 16px 4px 16px; padding: 10px 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bot-row { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; max-width: 95%; min-width: 0; }
+.bot-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 16px 16px 16px 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; width: 100%; }
+.bot-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bot-name { font-weight: 700; }
+.neta-tag { background: var(--idiot-bg); color: var(--idiot-dark); border: 1px solid var(--idiot); border-radius: 999px; padding: 0 10px; font-size: 0.8rem; font-weight: 700; }
+.say { font-size: 1.15rem; font-weight: 600; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.action-card { border: 1px solid var(--border); border-left: 6px solid var(--idiot); border-radius: var(--radius); padding: 10px 14px; background: var(--surface); }
+.action-title { font-weight: 700; margin: 0 0 4px; overflow-wrap: anywhere; }
+.action-inst, .action-why { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.action-sub { margin: 8px 0 2px; font-size: 0.8rem; font-weight: 700; color: var(--idiot-dark); }
+.item-box { border: 1px dashed var(--idiot); background: var(--idiot-bg); border-radius: var(--radius); padding: 10px 14px; text-align: center; }
+.item-emoji { font-size: 3rem; line-height: 1.2; }
+.item-shout { margin: 4px 0; font-weight: 700; color: var(--idiot-dark); overflow-wrap: anywhere; }
+.item-name { margin: 0; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.item-reason { margin: 4px 0; overflow-wrap: anywhere; }
+.item-amazon { margin: 4px 0 0; font-size: 0.85rem; color: var(--text-sub); overflow-wrap: anywhere; }
+.problem-tag { background: var(--idiot-bg); border: 1px solid var(--idiot); color: var(--idiot-dark); border-radius: 8px; padding: 4px 10px; font-size: 0.85rem; font-weight: 700; overflow-wrap: anywhere; }
+.safety-tag { background: var(--chip); border: 1px solid var(--input-border); color: var(--text); border-radius: 8px; padding: 4px 10px; font-size: 0.85rem; font-weight: 700; }
+.safety-say { background: var(--chip); border-radius: var(--radius); padding: 10px 14px; }
+
+.rate-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rate-btn { padding: 4px 14px; border: 1px solid var(--input-border); border-radius: 999px; background: var(--surface); cursor: pointer; font-weight: 700; }
+.rate-btn[aria-pressed="true"] { background: var(--text); color: #fff; border-color: var(--text); }
+.memo-area { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.memo-area textarea { min-height: 60px; }
+.memo-area .btn { align-self: flex-start; }
+.thought { font-size: 0.9rem; color: var(--text-sub); }
+.thought summary { cursor: pointer; font-weight: 700; color: var(--text); }
+.thought-body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; padding: 8px 10px; background: var(--chip); border-radius: 8px; }
+.meta { margin: 0; font-size: 0.78rem; color: var(--text-sub); overflow-wrap: anywhere; }
+
+.thinking-row { margin: 8px 0; padding: 10px 14px; background: var(--idiot-bg); border: 1px solid var(--idiot); border-radius: var(--radius); font-weight: 700; color: var(--idiot-dark); }
+.dots i { font-style: normal; display: inline-block; animation: n5-bounce 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: 0.2s; }
+.dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes n5-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: 1; } * { scroll-behavior: auto !important; } }
+
+.input-area { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.input-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
+.char-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.char-count.over { color: var(--error); }
+.key-hint { flex: 1 1 200px; font-size: 0.8rem; color: var(--text-sub); }
+.notice { margin: 8px 0 0; font-size: 0.8rem; color: var(--text-sub); }
+
+/* 設計図 */
+.group { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px 4px; margin: 0 0 16px; background: var(--surface); min-width: 0; }
+.group legend { font-weight: 700; padding: 0 6px; }
+.adv summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+.neta-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.neta-item { border: 1px solid var(--border); border-left: 6px solid var(--idiot); border-radius: 8px; padding: 10px; background: var(--bg); }
+.neta-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.neta-item .field { margin-bottom: 0; }
+.len-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 12px; }
+.sub-h { font-size: 1.05rem; margin: 20px 0 8px; }
+.sys-pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #0F172A; color: #F1F5F9; padding: 12px 14px; border-radius: var(--radius); max-height: 480px; overflow: auto; font-size: 0.85rem; }
+.steps ol { padding-left: 1.4em; }
+.steps li { margin-bottom: 4px; }
+
+@media (min-width: 1024px) {
+  .neta-grid { grid-template-columns: 200px 220px 1fr; }
+  .bot-row { max-width: 80%; }
+}
