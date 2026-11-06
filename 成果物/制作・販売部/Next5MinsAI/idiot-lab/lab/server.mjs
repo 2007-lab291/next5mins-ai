@@ -12,7 +12,7 @@ import net from 'node:net';
 import { createLocalServer, readJson, sendText, urlToFile, rateLimiter, redact, newToken } from './mamori.mjs';
 import { isCrisis, crisisAnswer } from '../../server/crisis.mjs';
 import { refOk, loadOfficial, listOfficial } from '../brain/blueprint.mjs';
-import { buildSystem, buildVariation } from '../brain/prompt.mjs';
+import { buildSystem, buildVariation, AFTER_SAFETY_NOTE } from '../brain/prompt.mjs';
 import { randomInt } from 'node:crypto';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
 import { fakeIdiot } from '../brain/fake.mjs';
@@ -202,7 +202,10 @@ export async function startLab({
       } else {
         inflight += 1;
         try {
-          r = await askIdiot({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, blueprint: conv.blueprint, fetchImpl, variation: buildVariation(picks) });
+          r = await askIdiot({ key, model, system: conv.system, messages, think: conv.think, lang: conv.lang, first, fetchImpl,
+            // 安全モードが出た会話では、答え(行動カード)を求めず、まじめにする固定の一文を付ける(安全点検 2026-11-06)
+            blueprint: conv.safety ? { ...conv.blueprint, always_action: false } : conv.blueprint,
+            variation: conv.safety ? AFTER_SAFETY_NOTE : buildVariation(picks) });
         } finally { inflight -= 1; }
       }
       if (!r.ok) fail = r;

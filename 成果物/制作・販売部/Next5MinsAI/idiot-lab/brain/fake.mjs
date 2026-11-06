@@ -14,6 +14,7 @@ export async function fakeIdiot({ blueprint, lang, text = '', first = true, turn
     const ex = pool[sum % pool.length];
     if (turnIndex >= 1 && ex.turns[turnIndex]) {
       base = structuredClone(ex.turns[turnIndex].reply);
+      if (blueprint.always_action && !base.action) base.action = structuredClone(ex.turns[0].reply.action);
     } else {
       base = structuredClone(ex.turns[0].reply);
       if (turnIndex >= 1) {

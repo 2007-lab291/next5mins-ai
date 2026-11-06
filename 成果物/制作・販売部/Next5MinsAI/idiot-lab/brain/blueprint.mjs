@@ -62,7 +62,8 @@ export function checkBlueprint(obj) {
   if (!isObj(obj)) fail('全体が { } の形ではありません');
   if (Buffer.byteLength(JSON.stringify(obj), 'utf8') > 100 * 1024) fail('ファイルが大きすぎます(100KB まで)');
   // variety(毎回ちがう答えにするための種の一覧)は、無くてもよい。あれば下で検査する(2026-11-06。社長の指示「毎回違うことを言ってきたほうがいいからバリエーションを増やして」)
-  const { variety: _variety, ...withoutVariety } = obj;
+  // always_action(毎回、答え=行動カードを出す)も、無くてもよい(社長の指示 2026-11-06「無限に会話が続くよね。毎回答えを出すようにして。そのあと続けていいから」)
+  const { variety: _variety, always_action: _always, ...withoutVariety } = obj;
   onlyKeys(withoutVariety, TOP, '設計図');
   noMarkup(obj, '設計図');
   if (obj.format !== 'next5mins-idiot-blueprint/1') fail('format は "next5mins-idiot-blueprint/1" にしてください');
@@ -119,6 +120,10 @@ export function checkBlueprint(obj) {
     en: text(obj.language_notes.en, 0, 1000, 'language_notes.en'),
   };
 
+  if (Object.hasOwn(obj, 'always_action')) {
+    if (typeof obj.always_action !== 'boolean') fail('always_action は true か false にしてください');
+    bp.always_action = obj.always_action;
+  }
   if (Object.hasOwn(obj, 'variety')) {
     onlyKeys(obj.variety, VARIETY_KEYS, 'variety');
     bp.variety = {};

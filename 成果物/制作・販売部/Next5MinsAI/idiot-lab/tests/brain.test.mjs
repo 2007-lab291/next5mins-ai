@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkBlueprint, loadOfficial, listOfficial, refOk, BLUEPRINT_DIR } from '../brain/blueprint.mjs';
-import { buildSystem, buildVariation } from '../brain/prompt.mjs';
+import { buildSystem, buildVariation, AFTER_SAFETY_NOTE } from '../brain/prompt.mjs';
 import { REPLY_SCHEMA, checkReply } from '../brain/schema.mjs';
 import { askIdiot, THINK_LEVELS, PRICES, costUsd } from '../brain/call.mjs';
 import { fakeIdiot } from '../brain/fake.mjs';
@@ -403,6 +403,51 @@ test('variety の項目は1行だけ(改行・タブを断る)。種の文は値
   assert.ok(t.includes('earlier reply in this conversation was in safety mode'));
   assert.ok(t.includes('electric, hot, high or sharp'));
   const sys = buildSystem(loadOfficial('v003'), 'ja');
-  assert.ok(sys.includes('examples and this_reply'));
+  assert.ok(sys.includes('examples, output_rules and this_reply'));
   assert.ok(sys.includes('touching outlets or wiring'));
+});
+
+test('v004(毎回答えを出すバカ): always_action が true。お手本は全部の回に答えがある。指示文に「毎回 action が要る」', () => {
+  const bp = loadOfficial('v004');
+  assert.equal(bp.always_action, true);
+  assert.equal(bp.based_on, 'official:v003');
+  for (const ex of bp.examples) for (const t of ex.turns) assert.ok(t.reply.action, ex.label);
+  assert.ok(buildSystem(bp, 'ja').includes('In EVERY normal reply, action is REQUIRED'));
+  const bad = structuredClone(bp);
+  bad.always_action = 'yes';
+  assert.throws(() => checkBlueprint(bad));
+});
+
+test('always_action: 2回目の答えに行動カードが無ければ問題にし、askIdiot は1回だけ頼み直す', async () => {
+  const bp = loadOfficial('v004');
+  const noAction = goodReply({ action: null, item: null, neta: 'saga' });
+  const c = checkReply(noAction, { lang: 'ja', first: false, blueprint: bp });
+  assert.ok(c.problems.includes('答え(行動カード)が無い'));
+  assert.equal(checkReply(noAction, { lang: 'ja', first: false, blueprint: loadOfficial('v003') }).problems.length, 0);
+  const calls = [];
+  const r = await askIdiot(base(fakeFetch([{ status: 200, text: okBody(noAction) }, { status: 200, text: okBody(goodReply({ neta: 'saga', item: null })) }], calls), { first: false, blueprint: bp }));
+  assert.equal(r.ok, true);
+  assert.equal(calls.length, 2);
+  assert.ok(r.reply.action);
+  assert.equal(r.usage.output_tokens, 100); // 頼み直しの分も、かかった分に入る
+  const calls2 = [];
+  const r2 = await askIdiot(base(fakeFetch([{ status: 200, text: okBody(noAction) }, { status: 200, text: okBody(noAction) }], calls2), { first: false, blueprint: bp }));
+  assert.equal(calls2.length, 2); // 2回まで。それでも無ければ、問題つきで返す
+  assert.equal(r2.ok, true);
+  assert.ok(r2.problems.includes('答え(行動カード)が無い'));
+  const safe = goodReply({ mode: 'safety', neta: 'none', action: null, item: null });
+  const calls3 = [];
+  const r3 = await askIdiot(base(fakeFetch([{ status: 200, text: okBody(safe) }], calls3), { first: false, blueprint: bp }));
+  assert.equal(calls3.length, 1); // 安全モードの答えには、行動カードを求めない
+  assert.equal(r3.reply.mode, 'safety');
+});
+
+test('安全モードが出たあと: 固定の一文は冗談・物語・行動カードを求めない。always_action の行にも例外がある', () => {
+  assert.ok(AFTER_SAFETY_NOTE.startsWith('<this_reply>') && AFTER_SAFETY_NOTE.includes('No jokes'));
+  const sys = buildSystem(loadOfficial('v004'), 'ja');
+  assert.ok(sys.includes('after safety mode has appeared in this conversation, action may be null'));
+  assert.ok(sys.includes('output_rules and this_reply'));
+  const noAction = goodReply({ action: null, item: null, neta: 'saga' });
+  const off = { ...loadOfficial('v004'), always_action: false };
+  assert.equal(checkReply(noAction, { lang: 'ja', first: false, blueprint: off }).problems.length, 0);
 });

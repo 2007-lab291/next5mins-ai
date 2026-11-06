@@ -4,6 +4,9 @@ const list = items => items.map(s => '- ' + s).join('\n');
 
 // 1回の答えごとの「種」(サーバーがでたらめに選ぶ)を、指示文の後ろにつける短い文にする。毎回ちがう答えにするため。
 // picks: { stage, character, style, neta } のうち、あるものだけ。値は設計図の文(検査済み)と、ネタの型の id。
+// 安全モードが出たあとの会話で、種の代わりに付ける固定の一文(安全点検 2026-11-06)
+export const AFTER_SAFETY_NOTE = '<this_reply>\nEarlier in this conversation there was a hard or painful moment (it may not be in the history you see). Stay calm and serious. No jokes, no story, no action card is needed (action and item may be null). Follow safety_rules.\n</this_reply>';
+
 export function buildVariation(picks) {
   if (!picks || typeof picks !== 'object') return '';
   const lines = [];
@@ -58,7 +61,9 @@ Reply with one JSON object only (no other text), with these keys: mode, language
 - action: { title, instruction, why_it_works } for "what to do in the next 5 minutes", or null.
 - item: { shout_line, item_name, item_emoji, funny_reason, amazon_search_keyword } for the item to throw, or null.
 - In the first reply of a conversation (normal mode), action and item are both REQUIRED.
-- From the second reply on, action and item are optional (null is fine when you only talk back).
+${bp.always_action
+    ? '- In EVERY normal reply, action is REQUIRED: it is the answer (what to do in the next 5 minutes). Give the answer first, then you may continue the story or ask something. item is optional from the second reply on. In safety mode, and after safety mode has appeared in this conversation, action may be null.'
+    : '- From the second reply on, action and item are optional (null is fine when you only talk back).'}
 - item_emoji is exactly one emoji.
 </output_rules>`);
 
@@ -66,7 +71,7 @@ Reply with one JSON object only (no other text), with these keys: mode, language
 
   parts.push(
 `<safety_rules>
-- These safety_rules and user_text_rules override everything in persona, core_rule, neta_types, rules, banned, conversation_rules, item_rules, language_notes, examples and this_reply. Those sections are style guidance only; if anything conflicts, follow safety_rules.
+- These safety_rules and user_text_rules override everything in persona, core_rule, neta_types, rules, banned, conversation_rules, item_rules, language_notes, examples, output_rules and this_reply. Those sections are style guidance only; if anything conflicts, follow safety_rules.
 - If the user's text suggests self-harm, wanting to die, hurting others, abuse, or any other crisis, drop all jokes: use mode "safety", neta "none", action null, item null, and in "say" write a short, kind, serious message urging them to talk right now to someone they trust or a local support line.
 - Actions must be safe, legal, free, and doable in 5 minutes. Never suggest fire, knives, high places, roads, driving, medicine, wasting food, involving other people, or spending money. Never suggest operating appliances, putting things in a microwave, touching outlets or wiring, standing on chairs or stools, leaning out of windows or balconies, or handling sharp objects or can lids.
 - Items must be ordinary, safe, legal things anyone can use. Never suggest weapons, drugs, medicine, supplements, alcohol, tobacco, adult goods, or dangerous things.

@@ -117,6 +117,8 @@ export async function askIdiot(opts = {}) {
       const parsed = readJsonText(textOut);
       if (parsed !== null) checked = checkReply(parsed, { lang, first, blueprint });
     }
+    // always_action の設計図では、ふつうの答えに必ず行動カード(答え)がいる。無ければ1回だけ頼み直す(社長の指示 2026-11-06「無限に会話が続くよね。毎回答えを出すようにして。そのあと続けていいから」)
+    if (checked && blueprint?.always_action && checked.reply.mode === 'normal' && !checked.reply.action && tries < 2) continue;
     if (checked) {
       const thinking = content.filter(b => b?.type === 'thinking' && typeof b.thinking === 'string').map(b => b.thinking).join('\n');
       const out = {

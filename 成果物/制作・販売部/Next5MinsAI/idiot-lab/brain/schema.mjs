@@ -100,6 +100,7 @@ export function checkReply(obj, { lang, first = false, blueprint } = {}) {
   if (lang && obj.language !== lang) problems.push('言語がちがう');
   if (obj.mode === 'normal') {
     if (first && (!action || !item)) problems.push('1回目なのに、行動カードか品物が無い');
+    else if (blueprint?.always_action && !action) problems.push('答え(行動カード)が無い');
     if (blueprint?.neta_types && !blueprint.neta_types.some(n => n.id === obj.neta)) {
       problems.push(`ネタの型「${obj.neta}」が設計図に無い`);
     }
