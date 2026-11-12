@@ -84,7 +84,7 @@ test('予行: /api/state と、会話の1回目・2回目', async () => {
     assert.equal(s.json.dry, true);
     assert.equal(s.json.port, lab.port);
     assert.deepEqual(s.json.thinkLevels.map(x => x.key), ['none', 'low', 'medium', 'high']);
-    assert.equal(s.json.defaultRef, 'official:v006'); // いちばん新しい公式の設計図
+    assert.equal(s.json.defaultRef, 'official:v007'); // いちばん新しい公式の設計図
     assert.equal(s.json.blueprints[0].ref, 'official:v001');
     assert.equal(s.json.blueprints[0].kind, 'official');
     assert.deepEqual(s.json.totals, { turns: 0, usd: 0, unknown: 0 });
@@ -552,7 +552,7 @@ test('平凡: /api/state の chars。前からの blueprints・defaultRef はバ
     assert.deepEqual(s.chars.map(c => c.label), ['🤪 バカ', '😐 平凡', '⚡ 神']);
     assert.equal(s.chars[0].defaultRef, s.defaultRef);
     assert.deepEqual(s.chars[0].blueprints, s.blueprints);
-    assert.equal(s.chars[1].defaultRef, 'official:v001');
+    assert.equal(s.chars[1].defaultRef, 'official:v002');
     assert.equal(s.chars[1].blueprints[0].ref, 'official:v001');
   });
 });
@@ -721,7 +721,7 @@ test('神: /api/state の chars はバカ・平凡・神の順', async () => {
     const s = (await get(lab, '/api/state')).json;
     assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average', 'god']);
     assert.equal(s.chars[2].label, '⚡ 神');
-    assert.equal(s.chars[2].defaultRef, 'official:v001');
+    assert.equal(s.chars[2].defaultRef, 'official:v002');
     assert.equal(s.chars[2].blueprints[0].ref, 'official:v001');
   });
 });
@@ -850,5 +850,20 @@ test('神: おかしい char の文は「バカ・平凡・神」', async () => 
     const r = await post(lab, '/api/chat', chatBody({ char: 'genius' }));
     assert.equal(r.status, 400);
     assert.equal(r.json.message, 'キャラの指定がおかしいです(バカ・平凡・神)。');
+  });
+});
+
+test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が種を渡さず、お手本も入らない', async () => {
+  const api = fakeApi();
+  await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async lab => {
+    for (const [char, ref] of [['idiot', 'official:v007'], ['god', 'official:v002'], ['average', 'official:v002']]) {
+      const n = api.calls.length;
+      const r = await post(lab, '/api/chat', chatBody({ char, ref, text: '部屋の片付けが進まない' }));
+      assert.ok(r.status === 200 || r.status === 502, `${char} ${r.status}`);
+      const sent = JSON.parse(api.calls[n].init.body);
+      const all = JSON.stringify(sent);
+      assert.ok(!all.includes('<this_reply>'), `${char}: 種(this_reply)を渡さない`);
+      assert.ok(!all.includes('<examples>'), `${char}: お手本を入れない`);
+    }
   });
 });

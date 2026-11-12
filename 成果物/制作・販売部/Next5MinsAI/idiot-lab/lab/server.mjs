@@ -97,7 +97,8 @@ const CHARS = {
     label: '🤪 バカ',
     list: listOfficial, load: loadOfficial, system: buildSystem, ask: askIdiot, fake: fakeIdiot,
     afterSafety: AFTER_SAFETY_NOTE, useVariety: true,
-    variation: (conv, first, h) => { const picks = h.pickVariety(conv, first); return { picks, text: buildVariation(picks) }; },
+    // 種(舞台・登場人物・語り口・ネタの型)は、設計図に variety があるときだけ渡す。v007 からは無い=全部AIまかせ(社長の指示 2026-11-12)
+    variation: (conv, first, h) => { if (!conv.blueprint.variety) return null; const picks = h.pickVariety(conv, first); return { picks, text: buildVariation(picks) }; },
     crisis: lang => ({ mode: 'safety', language: lang, neta: 'none', say: crisisAnswer(lang).message, action: null, item: null }),
   },
   average: {
@@ -114,6 +115,7 @@ const CHARS = {
     // 毎回、力の型を1つえらぶ(前の回と同じは避ける。1回目は saga も避ける)。空の id は渡さない
     variation: (conv, first) => {
       const all = conv.blueprint.power_types.map(n => n.id);
+      if (all.length < 2) return null; // 型が1つ(v002 から)のときは渡さない=全部AIまかせ(社長の指示 2026-11-12)
       let ids = all.filter(id => id !== conv.lastPower && !(first && id === 'saga'));
       if (!ids.length) ids = all;
       const id = ids[randomInt(ids.length)];
