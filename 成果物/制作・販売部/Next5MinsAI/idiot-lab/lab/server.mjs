@@ -114,7 +114,7 @@ const CHARS = {
     afterSafety: GOD_AFTER_SAFETY_NOTE, useVariety: false,
     // 毎回、力の型を1つえらぶ(前の回と同じは避ける。1回目は saga も避ける)。空の id は渡さない
     variation: (conv, first) => {
-      const all = conv.blueprint.power_types.map(n => n.id);
+      const all = (conv.blueprint.power_types || []).map(n => n.id);
       if (all.length < 2) return null; // 型が1つ(v002 から)のときは渡さない=全部AIまかせ(社長の指示 2026-11-12)
       let ids = all.filter(id => id !== conv.lastPower && !(first && id === 'saga'));
       if (!ids.length) ids = all;

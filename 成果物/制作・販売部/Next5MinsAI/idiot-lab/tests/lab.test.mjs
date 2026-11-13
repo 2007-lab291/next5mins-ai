@@ -864,6 +864,9 @@ test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が
       const all = JSON.stringify(sent);
       assert.ok(!all.includes('<this_reply>'), `${char}: 種(this_reply)を渡さない`);
       assert.ok(!all.includes('<examples>'), `${char}: お手本を入れない`);
+      // 型の一覧をやめても、v001 の型にあった安全の決まりは残す(2026-11-13 の安全点検 所見1・2)
+      if (char === 'god') for (const s of ['ベランダや水辺へ行かせない', 'お金や品物を買う話にしない', '本当に人に呼びかける', '本当に書き込ませない', '浮く・跳ぶ・飛ぶ', '本当に物を混ぜたり組み立てたりさせない', 'この世界を離れる話にしない', '人や生き物に使わない']) assert.ok(all.includes(s), `god: 「${s}」が指示文にある`);
+      if (char === 'average') assert.ok(all.includes('書いたものを送らせない'), 'average: 送らせない が指示文にある');
     }
   });
 });
