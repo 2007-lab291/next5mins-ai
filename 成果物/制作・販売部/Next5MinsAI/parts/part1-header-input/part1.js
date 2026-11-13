@@ -27,7 +27,7 @@
     },
     random: { en: '🎲 Random Situation', ja: '🎲 ランダムな状況' },
     clear: { en: '✕ Clear', ja: '✕ 消す' },
-    decide: { en: 'Decide My Next 5 Mins >>', ja: '5分後の行動を決める >>' },
+    decide: { en: 'Decide My Next Move >>', ja: '次の行動を決める >>' },
     thinking: { en: 'Thinking…', ja: '考え中…' },
     myHistory: { en: 'My History', ja: 'My History(履歴)' },
     logout: { en: 'Log Out', ja: 'ログアウト' },

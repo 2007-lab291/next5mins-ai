@@ -64,7 +64,7 @@ for (const width of [1024, 375]) {
       // (b) 日本語に切り替える
       await page.selectOption('.n5-p1-lang', 'ja');
       assert.equal(await page.locator('.n5-p1-title').textContent(), 'いま、何を先延ばしにしていますか?');
-      assert.equal(await page.locator('.n5-p1-decide').textContent(), '5分後の行動を決める >>');
+      assert.equal(await page.locator('.n5-p1-decide').textContent(), '次の行動を決める >>');
       assert.equal(await page.locator('.n5-p1-login').textContent(), 'ログイン');
       if (lang === 'en') {
         await page.selectOption('.n5-p1-lang', 'en');

@@ -9,7 +9,7 @@
     thinking: { en: 'Thinking… 3 minds at work…', ja: '考え中… 3人が考えています…' },
     situation: { en: 'Your situation: ', ja: 'あなたの状況: ' },
     why: { en: 'Why it works', ja: 'なぜ効くか' },
-    pick: { en: 'Do this for 5 min', ja: 'これを5分やる' },
+    pick: { en: 'Do this', ja: 'これをやる' },
     selected: { en: 'Selected', ja: '選んだ' },
     retry: { en: 'Try again', ja: 'もう一度' },
     error: { en: "Couldn't get an answer. Please try again.", ja: '答えを取れませんでした。もう一度試してください' }

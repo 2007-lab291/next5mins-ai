@@ -10,7 +10,7 @@ Next5Mins AI のサイトは、パーツを1つずつ別々に作ります(社�
 | 0 ページ全体 | `parts/part0-page/` | `<body>` 全体・`.n5-container` | 0-1〜0-6 |
 | 1 ヘッダーと状況の入力 | `parts/part1-header-input/` | `<header id="n5-part1">` と `<section id="n5-part1-input">` | 1-1〜1-12 |
 | 2 3枚のカード | `parts/part2-cards/` | `<section id="n5-part2">` | 2-1〜2-8 |
-| 3 5分タイマーと広告 | `parts/part3-timer-ads/` | `<section id="n5-part3">` | 3-1〜3-4 |
+| 3 タイマー(かかった時間を数える)と広告 | `parts/part3-timer-ads/` | `<section id="n5-part3">` | 3-1〜3-4 |
 | 4 投げる品物(重ねる) | `parts/part4-item-throw/` | `<div id="n5-part4">`(画面の上に重ねる層) | 4-1〜4-6 |
 | 5 共有とフッター | `parts/part5-share-footer/` | `<footer id="n5-part5">` | 5-1〜5-2 |
 | X AIの窓口(サーバー) | `server/` と `common/api.js` | 画面にはない | X-1〜X-9 |
@@ -46,7 +46,7 @@ N5.t({ en: 'Log In', ja: 'ログイン' });              // いまの言語の�
 | `n5:result` | `{ result }`(下の4の形) | パーツ2 | パーツ4・5 | AIの答えが来た |
 | `n5:error` | `{ message }` | パーツ2 | パーツ1 | AIの答えが来なかった |
 | `n5:select` | `{ model: 'idiot' \| 'average' \| 'god', action }` | パーツ2 | パーツ3・4 | カードが1枚選ばれた(action = そのカードの `{title, instruction, why_it_works}`) |
-| `n5:timer` | `{ status: 'start' \| 'tick' \| 'done', remaining }`(秒) | パーツ3 | パーツ4・5 | タイマーの始まり・毎秒・終わり |
+| `n5:timer` | `{ status: 'start' \| 'tick' \| 'done', elapsed }`(かかった秒。2026-11-13 に remaining=残り秒 から変えた) | パーツ3 | パーツ4・5 | タイマーの始まり・毎秒・終わり |
 | `n5:item-thrown` | `{ item }` | パーツ4 | (記録用) | 品物を投げた |
 | `n5:item-caught` | `{ item, url }` | パーツ4 | パーツ3(`is_item_caught`) | 品物をキャッチした |
 | `n5:reset` | `{}` | パーツ3(終わったとき)・パーツ1(✕ Clear) | 全部 | 入力待ちに戻る。パーツ2〜4は自分を消す |

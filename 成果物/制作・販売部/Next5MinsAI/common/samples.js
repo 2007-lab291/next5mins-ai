@@ -10,12 +10,12 @@ window.N5_SAMPLES = [
     },
     "average": {
       "title": "Just find one tax form",
-      "instruction": "Don't calculate anything yet. Spend the next 5 minutes just finding your W-2 or opening your tax folder on your desk.",
+      "instruction": "Don't calculate anything yet. For now, just find your W-2 or open your tax folder on your desk.",
       "why_it_works": "Gathering documents is the hardest mental hurdle. Once it's open, you're halfway there."
     },
     "god": {
       "title": "Lobby Congress to abolish the IRS",
-      "instruction": "Draft a constitutional amendment in 2 minutes, get 38 states to ratify it in 3, and make taxes illegal before dinner.",
+      "instruction": "Draft a constitutional amendment, get 38 states to ratify it, and make taxes illegal before dinner.",
       "why_it_works": "Filing taxes is for mortals. Changing federal law saves you at least $40 on TurboTax."
     }
   },
@@ -38,12 +38,12 @@ window.N5_SAMPLES = [
     },
     "average": {
       "title": "確定申告の書類を1枚だけ見つける",
-      "instruction": "まだ計算はしなくていい。次の5分間は、机の上に確定申告用のフォルダを1つ出して、源泉徴収票を1枚見つけることだけに使おう。",
+      "instruction": "まだ計算はしなくていい。いまは、机の上に確定申告用のフォルダを1つ出して、源泉徴収票を1枚見つけることだけでいい。",
       "why_it_works": "書類を探すのが一番ハードルが高い。そこだけ越えれば半分終わったも同然。"
     },
     "god": {
       "title": "税金そのものを違法にする",
-      "instruction": "2分で憲法改正案を起草し、残り3分で国会を通して、夕食前に税金そのものを違法にしろ。",
+      "instruction": "憲法改正案を起草し、国会を通して、夕食前に税金そのものを違法にしろ。",
       "why_it_works": "確定申告など凡人の所業だ。法律を変えれば会計ソフト代が浮くぞ。"
     }
   },

@@ -13,7 +13,7 @@
     privacy: { en: 'Privacy Policy', ja: 'プライバシーポリシー' },
     contact: { en: 'Contact', ja: '問い合わせ' },
     soon: { en: 'Coming soon', ja: '準備中' },
-    fallback: { en: 'Next5Mins AI: let AI decide your next 5 minutes', ja: 'Next5Mins AI: 5分後の行動をAIに決めてもらう' }
+    fallback: { en: 'Next5Mins AI: let AI decide your next move', ja: 'Next5Mins AI: 次の行動をAIに決めてもらう' }
   };
 
   function shareText() {
@@ -21,8 +21,8 @@
     var a = r && r.actions;
     if (a && a.idiot && a.average && a.god) {
       var i = a.idiot.title, m = a.average.title, g = a.god.title;
-      if (N5.state.lang === 'ja') return 'バカ:' + i + '/平凡:' + m + '/神:' + g + ' — 5分後の行動は Next5Mins AI に決めてもらった';
-      return 'Idiot: ' + i + ' / Average: ' + m + ' / God: ' + g + ' — my next 5 minutes, decided by Next5Mins AI';
+      if (N5.state.lang === 'ja') return 'バカ:' + i + '/平凡:' + m + '/神:' + g + ' — 次の行動は Next5Mins AI に決めてもらった';
+      return 'Idiot: ' + i + ' / Average: ' + m + ' / God: ' + g + ' — my next move, decided by Next5Mins AI';
     }
     return N5.t(T.fallback);
   }

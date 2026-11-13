@@ -27,7 +27,7 @@
   N5.on('n5:generate', (d) => { state.text = String(d.text || ''); state.result = null; state.selected = null; state.timer = null; });
   N5.on('n5:result', (d) => { state.result = d.result || null; });
   N5.on('n5:select', (d) => { state.selected = d.model || null; });
-  N5.on('n5:timer', (d) => { state.timer = { status: d.status, remaining: d.remaining }; });
+  N5.on('n5:timer', (d) => { state.timer = { status: d.status, elapsed: d.elapsed }; }); // かかった秒(2026-11-13 から。前は remaining=残り秒)
   N5.on('n5:reset', () => { state.text = ''; state.result = null; state.selected = null; state.timer = null; });
   // 最初の言語: 前回の選択 → 端末の言語 → en
   let lang = null;

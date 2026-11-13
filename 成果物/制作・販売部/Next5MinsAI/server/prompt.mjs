@@ -1,4 +1,4 @@
-// Haiku への指示文(system)を作る。土台は設計書 5章の原文(英語のまま。変えない)。
+// Haiku への指示文(system)を作る。土台は設計書 5章の原文(英語のまま)。2026-11-13 社長の指示「名前はそのままに5分後にする行動という制限をなくしましょう」「本サイトもなくす」で、「5分」の所だけ変えた。
 // そのあとに、答えの形(4章)・安全の決まり(M-9)・お手本(samples.js)・長さの決まりを足す。
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,15 +22,15 @@ export function sampleFor(lang, list = loadSamples()) {
   return list.find((s) => s && s.language === lang) || list[0];
 }
 
-// 設計書 5章の原文(1文字も変えない)
-export const BASE_PROMPT = `You are the engine behind "Next5Mins AI", an app that gives procrastinating users a 5-minute action from 3 independent models: Idiot, Average, and God.
+// 設計書 5章の原文から、「5分」の所だけ変えたもの(2026-11-13 社長の指示)。ほかは1文字も変えない
+export const BASE_PROMPT = `You are the engine behind "Next5Mins AI", an app that gives procrastinating users their next action from 3 independent models: Idiot, Average, and God.
 
 Target Output Language: {{selected_language}} (Output all fields, including amazon_search_keyword, in {{selected_language}}).
 
 Core Rules for the 3 Models (Keep them independent - do NOT make them talk to each other):
 1. "idiot": Tell them to do something that SOUNDS like plausible advice at first glance, but is actually COMPLETELY UNRELATED to their problem.
-2. "average": Give normal, grounded, genuinely helpful 5-minute advice that anyone can do right now.
-3. "god": Tell them to do something impossible for a human to do in 5 minutes, but legendary if they actually pulled it off.
+2. "average": Give normal, grounded, genuinely helpful advice that anyone can start right now.
+3. "god": Tell them to do something impossible for a human to do, but legendary if they actually pulled it off.
 4. "idiot_item_throw": The Idiot throws a searchable Amazon item at the user saying "Someone like you clearly needs THIS!"
 
 Humor & American Joke Guidelines (CRITICAL):
@@ -50,7 +50,7 @@ Return exactly one JSON object with these keys and nothing else (no markdown, no
   "language": "<the language code you answered in: \\"en\\" or \\"ja\\">",
   "situation_summary": "<a short summary of the user's situation, one line>",
   "actions": {
-    "idiot":   { "title": "<short headline>", "instruction": "<what to do in the next 5 minutes>", "why_it_works": "<one line on why it works>" },
+    "idiot":   { "title": "<short headline>", "instruction": "<what to do next>", "why_it_works": "<one line on why it works>" },
     "average": { "title": "...", "instruction": "...", "why_it_works": "..." },
     "god":     { "title": "...", "instruction": "...", "why_it_works": "..." }
   },
@@ -65,7 +65,7 @@ Return exactly one JSON object with these keys and nothing else (no markdown, no
 - "language": the code of the language you answered in.
 - "situation_summary": a short neutral summary of the user's problem (1 sentence).
 - "actions.*.title": a short headline for that model's action (1 short phrase).
-- "actions.*.instruction": the concrete thing to do in the next 5 minutes (1-2 sentences).
+- "actions.*.instruction": the concrete thing to do next (1-2 sentences).
 - "actions.*.why_it_works": why it works, in that model's voice (1 sentence).
 - "idiot_item_throw.shout_line": the Idiot's shout when throwing the item (1 sentence).
 - "idiot_item_throw.item_name": the name of a real product that can be found on Amazon (1 phrase).
@@ -81,6 +81,8 @@ function safetyRules(lang) {
   {"language": "${lang}", "safety": true, "message": "<a short, kind, serious message in ${LANG_NAME[lang]} that encourages them to talk to someone they trust or to a local crisis support line right now>"}
   No jokes, no item, no actions in that case.
 - The thrown item must be a safe, legal, everyday product suitable for all ages: no weapons, drugs, alcohol, tobacco, medicine, supplements, adult or sexual products, and nothing dangerous.
+- Actions must be safe, legal, free, doable where the user is, and stoppable at any time. There is no time limit, but never suggest long sessions, staying up all night, or skipping sleep, meals or breaks. Never suggest fire, knives, high places, roads, driving, medicine, mixing cleaning products, moving heavy things or furniture, spending money, contacting or involving other people, or anything that cannot be undone (deleting, throwing away, cancelling, sending, posting, paying).
+- The "god" action must be obviously fantastical (superpowers, absurd scale) and never a real physical challenge or stunt (holding breath, extreme exercise, fasting, cold or heat endurance). All safety rules apply to all three models.
 - Never mock the user's identity, health, or appearance.
 </safety_rules>`;
 }

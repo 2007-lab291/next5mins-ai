@@ -14,7 +14,7 @@
   }
   add('result (samples)', () => N5.emit('n5:result', { result: sample() }));
   add('result (safety: no throw)', () => N5.emit('n5:result', { result: { language: N5.state.lang, safety: true, message: 'You are not alone.' } }));
-  add('timer start', () => N5.emit('n5:timer', { status: 'start', remaining: 300 }));
+  add('timer start', () => N5.emit('n5:timer', { status: 'start', elapsed: 0 }));
   add('reset', () => N5.emit('n5:reset', {}));
   add('lang: en', () => N5.emit('n5:lang', { lang: 'en' }));
   add('lang: ja', () => N5.emit('n5:lang', { lang: 'ja' }));

@@ -1,4 +1,5 @@
-// パーツ3 5分タイマーと広告(比べ表 3-1〜3-4。約束は parts/CONTRACT.md)
+// パーツ3 タイマーと広告(比べ表 3-1〜3-4。約束は parts/CONTRACT.md)
+// 2026-11-13 社長の指示「名前はそのままに5分後にする行動という制限をなくしましょう」「本サイトもなくす」で、5分のカウントダウンをやめ、かかった時間を数える(時間の決まりはない。終わったら「できた」を押す)
 (function () {
   'use strict';
   const N5 = window.N5;
@@ -8,32 +9,28 @@
   const T = {
     pause: { en: 'Pause', ja: '一時停止' },
     resume: { en: 'Resume', ja: '再開' },
-    doneEarly: { en: 'Done early', ja: 'もう終わった' },
+    doneEarly: { en: 'Done', ja: 'できた' },
     giveUp: { en: 'Give up', ja: 'やめる' },
     done: { en: 'Done!', ja: 'できた!' },
-    praise: { en: 'Nice work. Five minutes well spent.', ja: 'おつかれさま。5分、ちゃんと動けました。' },
+    praise: { en: 'Nice work. Time well spent: ', ja: 'おつかれさま。ちゃんと動けました。かかった時間: ' },
     back: { en: 'Back to start', ja: '最初に戻る' },
     item: { en: '🎁 Item caught', ja: '🎁 品物をキャッチした' },
     ad: { en: 'Ad', ja: '広告' },
     adEmpty: { en: 'Ad slot', ja: '広告の枠' }
   };
-  const DEFAULT_SECONDS = 300;
   let sel = null;          // { model, action }
-  let total = DEFAULT_SECONDS;
-  let remaining = 0;
+  let elapsed = 0;         // かかった秒(数え上げ)
+  const MAX_SECONDS = 24 * 60 * 60; // 開いたままでも、24時間で「できた」と同じに止める(2026-11-13 の安全点検 所見4)
   let status = 'idle';     // idle | running | paused | done
   let startedAt = 0;
   let handle = null;
   let caught = false;
   const el = {};
 
-  function seconds() {
-    const n = Number(window.N5_P3_TEST_SECONDS);
-    return n > 0 ? Math.floor(n) : DEFAULT_SECONDS;
-  }
   function fmt(s) {
-    const m = Math.floor(s / 60), r = s % 60;
-    return String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const mmss = String(m).padStart(2, '0') + ':' + String(r).padStart(2, '0');
+    return h > 0 ? h + ':' + mmss : mmss; // 1時間をこえたら h:mm:ss
   }
   function stop() { if (handle != null) { clearInterval(handle); handle = null; } }
   function mk(tag, cls, parent) {
@@ -81,10 +78,10 @@
     el.title.textContent = sel.action.title || '';
     el.instr.textContent = sel.action.instruction || '';
     const isDone = status === 'done';
-    el.clock.textContent = isDone ? N5.t(T.done) : fmt(remaining);
+    el.clock.textContent = isDone ? N5.t(T.done) : fmt(elapsed);
     el.clock.classList.toggle('n5-p3-done', isDone);
     el.praise.hidden = !isDone;
-    el.praise.textContent = isDone ? N5.t(T.praise) : '';
+    el.praise.textContent = isDone ? N5.t(T.praise) + fmt(elapsed) : '';
     el.badge.hidden = !caught;
     el.badge.textContent = caught ? N5.t(T.item) : '';
     el.pause.textContent = N5.t(status === 'paused' ? T.resume : T.pause);
@@ -99,20 +96,20 @@
 
   function tick() {
     if (status !== 'running') return;
-    const left = Math.max(0, total - Math.floor((Date.now() - startedAt) / 1000));
-    if (left === remaining) return;
-    remaining = left;
-    if (left <= 0) { finish(); return; }
+    const now = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    if (now === elapsed) return;
+    elapsed = Math.min(now, MAX_SECONDS);
+    if (elapsed >= MAX_SECONDS) { finish(); return; }
     render();
-    N5.emit('n5:timer', { status: 'tick', remaining: left });
+    N5.emit('n5:timer', { status: 'tick', elapsed });
   }
   function finish() {
     if (status === 'done' || status === 'idle') return;
+    if (status === 'running') elapsed = Math.min(MAX_SECONDS, Math.max(0, Math.floor((Date.now() - startedAt) / 1000))); // tick() は呼ばない(24時間で finish を呼ぶので、呼ぶと回り続ける)
     stop();
     status = 'done';
-    remaining = 0;
     render();
-    N5.emit('n5:timer', { status: 'done', remaining: 0 });
+    N5.emit('n5:timer', { status: 'done', elapsed });
   }
   function togglePause() {
     if (status === 'running') {
@@ -121,7 +118,7 @@
       stop();
       status = 'paused';
     } else if (status === 'paused') {
-      startedAt = Date.now() - (total - remaining) * 1000;
+      startedAt = Date.now() - elapsed * 1000;
       status = 'running';
       handle = setInterval(tick, 250);
     }
@@ -131,14 +128,13 @@
     stop();
     sel = s;
     caught = false;
-    total = seconds();
-    remaining = total;
+    elapsed = 0;
     status = 'running';
     startedAt = Date.now();
     root.hidden = false;
     build();
     handle = setInterval(tick, 250);
-    N5.emit('n5:timer', { status: 'start', remaining: total });
+    N5.emit('n5:timer', { status: 'start', elapsed: 0 });
     root.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function clear() {
