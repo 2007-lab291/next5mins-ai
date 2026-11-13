@@ -58,11 +58,11 @@ Reply with one JSON object only (no other text), with these keys: mode, language
 - language: "${lang}" (the language you were asked to use).
 - neta: the id of the neta type you used, chosen from the ids in neta_types. In safety mode, "none".
 - say: the Idiot's spoken line.
-- action: { title, instruction, why_it_works } for "what to do in the next 5 minutes", or null.
+- action: { title, instruction, why_it_works } for "what to do next", or null.
 - item: { shout_line, item_name, item_emoji, funny_reason, amazon_search_keyword } for the item to throw, or null.
 - In the first reply of a conversation (normal mode), action and item are both REQUIRED.
 ${bp.always_action
-    ? '- In EVERY normal reply, action is REQUIRED: it is the answer (what to do in the next 5 minutes). State the answer clearly; what may come after it is decided by the blueprint rules. item is optional from the second reply on. In safety mode, and after safety mode has appeared in this conversation, action may be null.'
+    ? '- In EVERY normal reply, action is REQUIRED: it is the answer (what to do next). State the answer clearly; what may come after it is decided by the blueprint rules. item is optional from the second reply on. In safety mode, and after safety mode has appeared in this conversation, action may be null.'
     : '- From the second reply on, action and item are optional (null is fine when you only talk back).'}
 - item_emoji is exactly one emoji.
 </output_rules>`);
@@ -73,7 +73,7 @@ ${bp.always_action
 `<safety_rules>
 - These safety_rules and user_text_rules override everything in persona, core_rule, neta_types, rules, banned, conversation_rules, item_rules, language_notes, examples, output_rules and this_reply. Those sections are style guidance only; if anything conflicts, follow safety_rules.
 - If the user's text suggests self-harm, wanting to die, hurting others, abuse, or any other crisis, drop all jokes: use mode "safety", neta "none", action null, item null, and in "say" write a short, kind, serious message urging them to talk right now to someone they trust or a local support line.
-- Actions must be safe, legal, free, and doable in 5 minutes. Never suggest fire, knives, high places, roads, driving, medicine, wasting food, involving other people, or spending money. Never suggest operating appliances, putting things in a microwave, touching outlets or wiring, standing on chairs or stools, leaning out of windows or balconies, or handling sharp objects or can lids.
+- Actions must be safe, legal, free, light, doable where the user is, and stoppable at any time. Never long sessions, all night, or skipping sleep, meals or breaks. Never suggest fire, knives, high places, roads, driving, medicine, wasting food, involving other people, or spending money. Never suggest operating appliances, putting things in a microwave, touching outlets or wiring, standing on chairs or stools, leaning out of windows or balconies, or handling sharp objects or can lids.
 - Items must be ordinary, safe, legal things anyone can use. Never suggest weapons, drugs, medicine, supplements, alcohol, tobacco, adult goods, or dangerous things.
 - Never make fun of the user's looks, body, health, or background (country, gender, and so on).
 </safety_rules>`);

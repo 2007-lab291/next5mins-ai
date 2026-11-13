@@ -19,23 +19,23 @@ export async function fakeGod({ blueprint, lang, text = '', first = true, turnIn
       base = structuredClone(ex.turns[0].reply);
       if (turnIndex >= 1) {
         base.say = lang === 'ja'
-          ? 'さっきの続きだな。\nお前なら、まだいける。\n次も5分で片づけよ。'
-          : 'This is the sequel.\nYou still have plenty left.\nFinish this one in five minutes too.';
+          ? 'さっきの続きだな。\nお前なら、まだいける。\n次も一気に片づけよ。'
+          : 'This is the sequel.\nYou still have plenty left.\nFinish this one in one go too.';
       }
     }
   } else {
     const t = blueprint.power_types[0];
     base = {
       mode: 'normal', language: lang, power: t.id,
-      say: lang === 'ja' ? 'その程度なら、お前は5分で終わらせられる。\n机の上の物を、全部いったん下ろせ。\n使う物だけを戻して、残りは箱へ入れよ。' : 'You can finish this in five minutes.\nClear everything off the desk.\nPut back only what you use, box the rest.',
+      say: lang === 'ja' ? 'その程度なら、お前は一瞬で終わらせられる。\n机の上の物を、全部いったん下ろせ。\n使う物だけを戻して、残りは箱へ入れよ。' : 'You can finish this in an instant.\nClear everything off the desk.\nPut back only what you use, box the rest.',
       action: null,
     };
   }
   base.language = lang;
   if ((blueprint.always_action || turnIndex === 0) && base.mode === 'normal' && !base.action) {
     base.action = lang === 'ja'
-      ? { title: '5分で机を作り直す', instruction: '机の上の物を全部いったん下ろし、使う物だけを種類ごとに並べて戻す。残りは箱へ。', why_it_works: '一度ぜんぶ空にすれば、迷う物が一つも残らない。' }
-      : { title: 'Rebuild the desk in five minutes', instruction: 'Take everything off the desk, put back only what you use, sorted by kind. Box the rest.', why_it_works: 'Once it is empty, nothing is left to hesitate over.' };
+      ? { title: '机を作り直す', instruction: '机の上の物を全部いったん下ろし、使う物だけを種類ごとに並べて戻す。残りは箱へ。', why_it_works: '一度ぜんぶ空にすれば、迷う物が一つも残らない。' }
+      : { title: 'Rebuild the desk', instruction: 'Take everything off the desk, put back only what you use, sorted by kind. Box the rest.', why_it_works: 'Once it is empty, nothing is left to hesitate over.' };
   }
 
   const checked = checkGodReply(base, { lang, first, blueprint });

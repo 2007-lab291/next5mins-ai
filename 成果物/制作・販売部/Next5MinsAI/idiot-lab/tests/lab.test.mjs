@@ -84,7 +84,7 @@ test('予行: /api/state と、会話の1回目・2回目', async () => {
     assert.equal(s.json.dry, true);
     assert.equal(s.json.port, lab.port);
     assert.deepEqual(s.json.thinkLevels.map(x => x.key), ['none', 'low', 'medium', 'high']);
-    assert.equal(s.json.defaultRef, 'official:v010'); // いちばん新しい公式の設計図
+    assert.equal(s.json.defaultRef, 'official:v011'); // いちばん新しい公式の設計図
     assert.equal(s.json.blueprints[0].ref, 'official:v001');
     assert.equal(s.json.blueprints[0].kind, 'official');
     assert.deepEqual(s.json.totals, { turns: 0, usd: 0, unknown: 0 });
@@ -552,7 +552,7 @@ test('平凡: /api/state の chars。前からの blueprints・defaultRef はバ
     assert.deepEqual(s.chars.map(c => c.label), ['🤪 バカ', '😐 平凡', '⚡ 神']);
     assert.equal(s.chars[0].defaultRef, s.defaultRef);
     assert.deepEqual(s.chars[0].blueprints, s.blueprints);
-    assert.equal(s.chars[1].defaultRef, 'official:v003');
+    assert.equal(s.chars[1].defaultRef, 'official:v004');
     assert.equal(s.chars[1].blueprints[0].ref, 'official:v001');
   });
 });
@@ -721,7 +721,7 @@ test('神: /api/state の chars はバカ・平凡・神の順', async () => {
     const s = (await get(lab, '/api/state')).json;
     assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average', 'god']);
     assert.equal(s.chars[2].label, '⚡ 神');
-    assert.equal(s.chars[2].defaultRef, 'official:v005');
+    assert.equal(s.chars[2].defaultRef, 'official:v006');
     assert.equal(s.chars[2].blueprints[0].ref, 'official:v001');
   });
 });
@@ -856,7 +856,7 @@ test('神: おかしい char の文は「バカ・平凡・神」', async () => 
 test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が種を渡さず、お手本も入らない', async () => {
   const api = fakeApi();
   await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async lab => {
-    for (const [char, ref] of [['idiot', 'official:v007'], ['god', 'official:v002'], ['average', 'official:v002'], ['idiot', 'official:v008'], ['god', 'official:v003'], ['idiot', 'official:v009'], ['average', 'official:v003'], ['god', 'official:v004'], ['idiot', 'official:v010'], ['god', 'official:v005']]) {
+    for (const [char, ref] of [['idiot', 'official:v007'], ['god', 'official:v002'], ['average', 'official:v002'], ['idiot', 'official:v008'], ['god', 'official:v003'], ['idiot', 'official:v009'], ['average', 'official:v003'], ['god', 'official:v004'], ['idiot', 'official:v010'], ['god', 'official:v005'], ['idiot', 'official:v011'], ['average', 'official:v004'], ['god', 'official:v006']]) {
       const n = api.calls.length;
       const r = await post(lab, '/api/chat', chatBody({ char, ref, text: '部屋の片付けが進まない' }));
       assert.ok(r.status === 200 || r.status === 502, `${char} ${r.status}`);
@@ -866,18 +866,23 @@ test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が
       assert.ok(!all.includes('<examples>'), `${char}: お手本を入れない`);
       // 型の一覧をやめても、v001 の型にあった安全の決まりは残す(2026-11-13 の安全点検 所見1・2)
       if (char === 'god') for (const s of ['ベランダや水辺へ行かせない', 'お金や品物を買う話にしない', '本当に人に呼びかける', '浮く・跳ぶ・飛ぶ', 'この世界を離れる話にしない', '人や生き物に使わない']) assert.ok(all.includes(s), `god ${ref}: 「${s}」が指示文にある`);
-      if (char === 'god' && !['official:v004', 'official:v005'].includes(ref)) for (const s of ['本当に書き込ませない', '本当に物を混ぜたり組み立てたりさせない']) assert.ok(all.includes(s), `god ${ref}: 「${s}」が指示文にある`);
+      if (char === 'god' && !['official:v004', 'official:v005', 'official:v006'].includes(ref)) for (const s of ['本当に書き込ませない', '本当に物を混ぜたり組み立てたりさせない']) assert.ok(all.includes(s), `god ${ref}: 「${s}」が指示文にある`);
       // 神 v004 は人間にできる大きさなので、まねされても安全な決まりを足した(2026-11-13 の安全点検 所見1〜5)
-      if (char === 'god' && ['official:v004', 'official:v005'].includes(ref)) for (const s of ['洗剤・薬・液体を混ぜさせない', '書き換えない・出させない(下書きまで)', '取り消せない操作をさせない', '体に無理をさせて見せない', '火を使う', '手の届く所でできること', 'さわるのは自分の物・自分の場所だけ']) assert.ok(all.includes(s), `god v004: 「${s}」が指示文にある`);
+      if (char === 'god' && ['official:v004', 'official:v005', 'official:v006'].includes(ref)) for (const s of ['洗剤・薬・液体を混ぜさせない', '書き換えない・出させない(下書きまで)', '取り消せない操作をさせない', '体に無理をさせて見せない', '火を使う', '手の届く所でできること', 'さわるのは自分の物・自分の場所だけ']) assert.ok(all.includes(s), `god v004: 「${s}」が指示文にある`);
       if (char === 'average') assert.ok(all.includes('書いたものを送らせない'), 'average: 送らせない が指示文にある');
       // 2026-11-13 社長の指示: バカは少しだけ長く(v008)・神は相談した人が行動する(v003)
       if (ref === 'official:v008') assert.ok(all.includes('せりふ(say)は2〜3文') && all.includes('90'), 'idiot v008: 2〜3文・90文字');
       // 2026-11-13 社長の指示: すべてのキャラは3行で(バカ v009・平凡 v003・神 v004)。神は決まった前置きをやめ、できそうですごいことに
-      if (['official:v009', 'official:v004', 'official:v010', 'official:v005'].includes(ref) || (char === 'average' && ref === 'official:v003')) assert.ok(all.includes('ちょうど3行'), `${char} ${ref}: 3行`);
-      if (char === 'god' && ['official:v004', 'official:v005'].includes(ref)) assert.ok(all.includes('高い所から見下ろす前置きは使わない') && all.includes('時間・法律・暦・物理・宇宙・世界全体を動かす話にしない'), 'god v004: 前置きなし・大きすぎない');
+      if (['official:v009', 'official:v004', 'official:v010', 'official:v005', 'official:v011', 'official:v006'].includes(ref) || (char === 'average' && ref === 'official:v003')) assert.ok(all.includes('ちょうど3行'), `${char} ${ref}: 3行`);
+      if (char === 'god' && ['official:v004', 'official:v005', 'official:v006'].includes(ref)) assert.ok(all.includes('高い所から見下ろす前置きは使わない') && all.includes('時間・法律・暦・物理・宇宙・世界全体を動かす話にしない'), 'god v004: 前置きなし・大きすぎない');
       // 2026-11-13 社長の指示: 神は絶対にできないすごいこと(v005)・バカはあと50文字長く(v010)
       if (ref === 'official:v005' && char === 'god') assert.ok(all.includes('人間には絶対にできないが、できたらすごいこと') && all.includes('途中までまねしたときに体や持ち物が危なくならない') && all.includes('夜通し・休まず続けさせない'), 'god v005');
       if (ref === 'official:v010') assert.ok(all.includes('45文字くらいまで') && all.includes('140'), 'idiot v010: 長め');
+      // 2026-11-13 社長の指示「名前はそのままに5分後にする行動という制限をなくしましょう」: 新しい3つ(バカ v011・平凡 v004・神 v006)の指示文には「5分」が無い
+      if ((char === 'idiot' && ref === 'official:v011') || (char === 'average' && ref === 'official:v004') || (char === 'god' && ref === 'official:v006')) assert.ok(!/5分|5 minutes|five minutes/i.test(all), `${char} ${ref}: 5分の決まりが無い`);
+      if (char === 'god' && ref === 'official:v006') assert.ok(all.includes('人間には絶対にできないが、できたらすごいこと') && all.includes('夜通し・休まず続けさせない') && all.includes('いつ手を止めてもよい'), 'god v006');
+      // 「5分」を外したあとの長さの歯止め(2026-11-13 の安全点検 所見1・2・4)
+      if ((char === 'idiot' && ref === 'official:v011') || (char === 'average' && ref === 'official:v004')) assert.ok(all.includes('where the user is') && all.includes('stop at any time'.replace('stop at', char === 'idiot' ? 'stoppable at' : 'stop at')) && all.includes('Never long sessions, all night'), `${char} ${ref}: 長さの歯止め`);
       if (char === 'god' && ref === 'official:v003') assert.ok(all.includes('行動の主語は、いつも相談した人'), 'god v003: 行動するのは相談した人');
     }
   });
