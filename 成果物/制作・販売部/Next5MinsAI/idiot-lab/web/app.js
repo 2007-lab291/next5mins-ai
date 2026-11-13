@@ -624,7 +624,11 @@
     });
     $('chatText').addEventListener('input', updateSend);
     $('chatText').addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); send(); }
+      // Enter で送る(社長の指示 2026-11-13)。Shift+Enter は改行。日本語の変換中の Enter(確定)では送らない
+      if (ev.key !== 'Enter' || ev.shiftKey || ev.altKey) return;
+      if (ev.isComposing || ev.keyCode === 229) return;
+      ev.preventDefault();
+      send();
     });
     $('sendBtn').addEventListener('click', send);
     $('newConv').addEventListener('click', newConversation);

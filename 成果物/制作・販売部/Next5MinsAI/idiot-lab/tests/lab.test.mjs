@@ -84,7 +84,7 @@ test('予行: /api/state と、会話の1回目・2回目', async () => {
     assert.equal(s.json.dry, true);
     assert.equal(s.json.port, lab.port);
     assert.deepEqual(s.json.thinkLevels.map(x => x.key), ['none', 'low', 'medium', 'high']);
-    assert.equal(s.json.defaultRef, 'official:v007'); // いちばん新しい公式の設計図
+    assert.equal(s.json.defaultRef, 'official:v008'); // いちばん新しい公式の設計図
     assert.equal(s.json.blueprints[0].ref, 'official:v001');
     assert.equal(s.json.blueprints[0].kind, 'official');
     assert.deepEqual(s.json.totals, { turns: 0, usd: 0, unknown: 0 });
@@ -721,7 +721,7 @@ test('神: /api/state の chars はバカ・平凡・神の順', async () => {
     const s = (await get(lab, '/api/state')).json;
     assert.deepEqual(s.chars.map(c => c.key), ['idiot', 'average', 'god']);
     assert.equal(s.chars[2].label, '⚡ 神');
-    assert.equal(s.chars[2].defaultRef, 'official:v002');
+    assert.equal(s.chars[2].defaultRef, 'official:v003');
     assert.equal(s.chars[2].blueprints[0].ref, 'official:v001');
   });
 });
@@ -856,7 +856,7 @@ test('神: おかしい char の文は「バカ・平凡・神」', async () => 
 test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が種を渡さず、お手本も入らない', async () => {
   const api = fakeApi();
   await withLab({ dry: false, key: KEY, fetchImpl: api.fetchImpl }, async lab => {
-    for (const [char, ref] of [['idiot', 'official:v007'], ['god', 'official:v002'], ['average', 'official:v002']]) {
+    for (const [char, ref] of [['idiot', 'official:v007'], ['god', 'official:v002'], ['average', 'official:v002'], ['idiot', 'official:v008'], ['god', 'official:v003']]) {
       const n = api.calls.length;
       const r = await post(lab, '/api/chat', chatBody({ char, ref, text: '部屋の片付けが進まない' }));
       assert.ok(r.status === 200 || r.status === 502, `${char} ${r.status}`);
@@ -867,6 +867,9 @@ test('テンプレートなし(2026-11-12): 新しい設計図では、窓口が
       // 型の一覧をやめても、v001 の型にあった安全の決まりは残す(2026-11-13 の安全点検 所見1・2)
       if (char === 'god') for (const s of ['ベランダや水辺へ行かせない', 'お金や品物を買う話にしない', '本当に人に呼びかける', '本当に書き込ませない', '浮く・跳ぶ・飛ぶ', '本当に物を混ぜたり組み立てたりさせない', 'この世界を離れる話にしない', '人や生き物に使わない']) assert.ok(all.includes(s), `god: 「${s}」が指示文にある`);
       if (char === 'average') assert.ok(all.includes('書いたものを送らせない'), 'average: 送らせない が指示文にある');
+      // 2026-11-13 社長の指示: バカは少しだけ長く(v008)・神は相談した人が行動する(v003)
+      if (ref === 'official:v008') assert.ok(all.includes('せりふ(say)は2〜3文') && all.includes('90'), 'idiot v008: 2〜3文・90文字');
+      if (ref === 'official:v003') assert.ok(all.includes('行動の主語は、いつも相談した人'), 'god v003: 行動するのは相談した人');
     }
   });
 });
